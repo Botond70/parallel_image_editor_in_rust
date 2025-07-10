@@ -44,11 +44,11 @@ fn SideBar() -> Element {
 
     rsx! {
         div { class: "sidebar-container", style: if visibility { "display: flex;" } else { "display:none;" },
-            button { class: "sidebar-button" , "Click me!"}
-            button { class: "sidebar-button" , "Click me!"}
-            button { class: "sidebar-button" , "Click me!"}
-            button { class: "sidebar-button" , "Click me!"}
-            button { class: "sidebar-button" , "Click me!"}
+            button { class: "btn" , "Click me!"}
+            button { class: "btn" , "Click me!"}
+            button { class: "btn" , "Click me!"}
+            button { class: "btn" , "Click me!"}
+            button { class: "btn" , "Click me!"}
         }
     }
 }
@@ -64,7 +64,7 @@ fn MenuBar() -> Element {
     rsx! {
         div { class: "menubar-container",
             div { class: "view-dropdown",
-                button { class: "view-btn", "View"}
+                button { class: "btn", "View"}
                 div { class: "dropdown-content",
                     button { onclick: toggle,
                         class: "btn", "Toggle Sidebar" }

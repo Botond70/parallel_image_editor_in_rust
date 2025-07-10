@@ -1,5 +1,5 @@
 html, body {
-    background-color: #202020;
+    background-color: #1E1E1E;
     color: white;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     height: 100%;
@@ -37,10 +37,26 @@ html, body {
     position: absolute;
     background-color: #353535;
     border: 1px solid #505050;
+    border-radius: 3px;
+    row-gap: 2px;
 }
 
 .dropdown-content .btn {
+    width: 100%;
+}
+
+.btn {
     white-space: nowrap;
+    background: none;
+    border: none;
+    color: #F5F5F5;
+    border-radius: 5px;
+    padding: 3px;
+}
+
+.btn:hover {
+    background-color: #34a8eb;
+    color: white;
 }
 
 .view-dropdown:hover .dropdown-content {
