@@ -98,12 +98,12 @@ body,
 }
 
 .image-inner {
-    display: flex;
+    display: inline-block;
     flex: row;
     align-items: center;
     justify-content: space-evenly;
     border: 1 solid yellow;
-    width: 75vw;
+    width: auto;
     height: 75vh;
     background-color: white;
 }
@@ -112,6 +112,6 @@ body,
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 15rem;
-    height: auto;
+    width: auto;
+    height: 100%;
 }

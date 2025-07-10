@@ -1,4 +1,4 @@
-use dioxus::{html::img, prelude::*};
+use dioxus::{html::{image, img}, prelude::*};
 use dioxus_desktop::{Config, LogicalSize, WindowBuilder};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -80,13 +80,14 @@ fn ImageBoard() -> Element {
         div { class: "image-container",
             div { class: "image-inner",
                 img {
-                    src: "{TEST_IMG}",
+                    src: TEST_IMG,
                     class: "image-board",
                 }
             }
         }
     }
 }
+
 #[component]
 fn WorkSpace() -> Element {
     rsx! {
