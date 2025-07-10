@@ -1,7 +1,8 @@
-use dioxus::prelude::*;
-use dioxus_desktop::{Config, WindowBuilder, LogicalSize};
+use dioxus::{html::img, prelude::*};
+use dioxus_desktop::{Config, LogicalSize, WindowBuilder};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
 
 #[derive(Clone, Copy)]
 struct SidebarVisibility {
@@ -9,31 +10,28 @@ struct SidebarVisibility {
 }
 
 fn main() {
-
     LaunchBuilder::new()
-    .with_cfg(
-      Config::default()
-        .with_menu(None)
-        .with_window(
-          WindowBuilder::new()
-            .with_title("Editor")
-            .with_min_inner_size(LogicalSize::new(800.0, 500.0))
+        .with_cfg(
+            Config::default().with_menu(None).with_window(
+                WindowBuilder::new()
+                    .with_title("Editor")
+                    .with_min_inner_size(LogicalSize::new(800.0, 500.0)),
+            ),
         )
-    )
-    .launch(App);
+        .launch(App);
 }
 
 #[component]
 fn App() -> Element {
     let visibility = use_signal(|| true);
-    use_context_provider(|| SidebarVisibility { state: visibility});
+    use_context_provider(|| SidebarVisibility { state: visibility });
 
     rsx! {
 
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
-
         MenuBar {}
-        SideBar {}
+        WorkSpace {}
+
 
     }
 }
@@ -58,7 +56,7 @@ fn MenuBar() -> Element {
     let curr_state = *use_context::<SidebarVisibility>().state.read();
 
     let toggle = move |_| {
-         use_context::<SidebarVisibility>().state.set(!curr_state);
+        use_context::<SidebarVisibility>().state.set(!curr_state);
     };
 
     rsx! {
@@ -74,4 +72,28 @@ fn MenuBar() -> Element {
             }
         }
     }
+}
+
+#[component]
+fn ImageBoard() -> Element {
+    rsx! {
+        div { class: "image-container",
+            div { class: "image-inner",
+                img {
+                    src: "{TEST_IMG}",
+                    class: "image-board",
+                }
+            }
+        }
+    }
+}
+#[component]
+fn WorkSpace() -> Element {
+    rsx!(
+        div { class: "work-space",
+        SideBar {}
+        ImageBoard {}
+
+    }
+    )
 }
