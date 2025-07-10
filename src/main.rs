@@ -1,4 +1,7 @@
-use dioxus::{html::{image, img}, prelude::*};
+use dioxus::{
+    html::{image, img},
+    prelude::*,
+};
 use dioxus_desktop::{Config, LogicalSize, WindowBuilder};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -7,6 +10,10 @@ const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
 #[derive(Clone, Copy)]
 struct SidebarVisibility {
     state: Signal<bool>,
+}
+#[derive(Clone, Copy)]
+struct ImageZoom {
+    zoom: Signal<u64>,
 }
 
 fn main() {
@@ -24,14 +31,15 @@ fn main() {
 #[component]
 fn App() -> Element {
     let visibility = use_signal(|| true);
+    let img_scale = use_signal(|| 100);
     use_context_provider(|| SidebarVisibility { state: visibility });
-
+    use_context_provider(|| ImageZoom { zoom: img_scale });
     rsx! {
 
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
         MenuBar {}
         WorkSpace {}
-
+        FootBar {}
 
     }
 }
@@ -94,6 +102,36 @@ fn WorkSpace() -> Element {
         div { class: "work-space",
             SideBar {}
             ImageBoard {}
+        }
+    }
+}
+#[component]
+fn FootBar() -> Element {
+    let mut curr_zoom = *use_context::<ImageZoom>().zoom.read();
+
+    rsx! {
+        div { class: "footer-main",
+            div { class: "footer-left"  },
+            div { class: "footer-mid"   },
+            div { class: "footer-right" ,
+                div { class: "zoom",
+                    input {
+                        type: "range",
+                        min: "20",
+                        value:"{curr_zoom}" ,
+                        max: "400",
+                        class: "slider",
+                        id:"range1",
+                        oninput: move |e| {
+                            curr_zoom = e.value().parse::<u64>().unwrap();
+                            use_context::<ImageZoom>().zoom.set(curr_zoom);
+                        }
+
+
+                    },
+                    label{"{curr_zoom}"}
+                }
+            }
         }
     }
 }
