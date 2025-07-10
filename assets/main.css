@@ -90,22 +90,20 @@ body,
     float: inline-end;
     flex-direction: column;
     align-items: center;
-    justify-content: space-evenly;
-    padding: 15px;
+    justify-content: center;
     border: 1 solid white;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
 }
 
 .image-inner {
     display: inline-block;
-    flex: row;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: center;
     border: 1 solid yellow;
     width: auto;
     height: 75vh;
-    background-color: white;
+    /* background-color: white; */
 }
 
 .image-board {
