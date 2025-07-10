@@ -89,11 +89,10 @@ fn ImageBoard() -> Element {
 }
 #[component]
 fn WorkSpace() -> Element {
-    rsx!(
+    rsx! {
         div { class: "work-space",
-        SideBar {}
-        ImageBoard {}
-
+            SideBar {}
+            ImageBoard {}
+        }
     }
-    )
 }

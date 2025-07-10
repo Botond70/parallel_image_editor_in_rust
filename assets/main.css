@@ -10,13 +10,16 @@ body {
     margin: 0;
 }
 
-
+html,
+body,
+* {
+    user-select: none;
+}
 
 .sidebar-container {
     display: flex;
     float: inline-start;
     z-index: 3;
-
     flex-direction: column;
     justify-content: space-evenly;
     align-items: center;
