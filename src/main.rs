@@ -84,13 +84,17 @@ fn MenuBar() -> Element {
 
 #[component]
 fn ImageBoard() -> Element {
+    let mut curr_zoom = *use_context::<ImageZoom>().zoom.read();
+    let mut actualzoom = curr_zoom / 4;
     rsx! {
         div { class: "image-container",
             div { class: "image-inner",
+                height: "{actualzoom}vh",
                 img {
                     src: TEST_IMG,
                     class: "image-board",
                 }
+
             }
         }
     }
@@ -125,6 +129,7 @@ fn FootBar() -> Element {
                         oninput: move |e| {
                             curr_zoom = e.value().parse::<u64>().unwrap();
                             use_context::<ImageZoom>().zoom.set(curr_zoom);
+
                         }
 
 
