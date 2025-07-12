@@ -71,8 +71,8 @@ fn MenuBar() -> Element {
 
 #[component]
 fn ImageBoard() -> Element {
-    let mut curr_zoom = *use_context::<ImageZoom>().zoom.read();
-    let mut actualzoom = curr_zoom / 4;
+    let curr_zoom = *use_context::<ImageZoom>().zoom.read();
+    let actualzoom = curr_zoom / 4;
     rsx! {
         div { class: "image-container",
             div { class: "image-inner",
