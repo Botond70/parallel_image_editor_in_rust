@@ -110,7 +110,7 @@ body,
     /* background-color: white; */
 }
 
-.image-board {
+#image-board {
     z-index: 1;
     display: flex;
     justify-content: center;
