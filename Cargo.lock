@@ -3939,6 +3939,7 @@ name = "parallel_image_editor_in_rust"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "dioxus",
  "dioxus-desktop",
  "env_logger",

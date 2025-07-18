@@ -1,9 +1,13 @@
 use dioxus::{
-    prelude::*,
+    html::HasFileData, prelude::*
 };
 
+use image::{load_from_memory, DynamicImage, GenericImageView, ImageReader};
 use crate::renderer::State;
-
+use std::fs::File;
+use std::io::Cursor;
+use base64::engine::general_purpose::STANDARD as base64_engine;
+use base64::Engine;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -75,14 +79,52 @@ fn MenuBar() -> Element {
 pub fn ImageBoard() -> Element {
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
     let actualzoom = curr_zoom / 4;
+    let mut image_data_url = use_signal(|| None::<String>);
     rsx! {
         div { class: "image-container",
-            div { class: "image-inner",
-                height: "{actualzoom}vh",
-                canvas {
-                    id: "image-board",
-                }
+            ondragover: move |evt| {
+                evt.prevent_default();
+            },
+            ondrop: move |evt| {
+                evt.prevent_default();
 
+                
+                let file_engine = evt.files().unwrap();
+                let file_names = file_engine.files();
+                let first_file_name = file_names.iter().next().cloned().unwrap();
+
+                spawn(async move {
+                    if let Some(bytes) = file_engine.read_file(&first_file_name).await {
+                        match load_from_memory(&bytes) {
+                            Ok(img) => {
+                                println!("Loaded image: {:?}", img.dimensions());
+                                
+                                let mut png_bytes = Vec::new();
+                                if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
+                                    println!("Error during formatting: {err:?}");
+                                }
+
+                                let base64_str = base64_engine.encode(&png_bytes);
+                                image_data_url.set(format!("data:image/png;base64,{}", base64_str).into());
+                            },
+                            Err(err) => {println!("{err:?}");}
+                        }
+                    }
+                });
+            },
+
+            match image_data_url.as_ref() {
+                Some(url) => {
+                    rsx!(
+                    div { class: "image-inner",
+                        height: "{actualzoom}vh",
+                        img {
+                            src: "{url}",
+                            id: "image-board",
+                        }
+                    }
+                )},
+                None => rsx!(p {"Drag and drop images here!"})
             }
         }
     }
