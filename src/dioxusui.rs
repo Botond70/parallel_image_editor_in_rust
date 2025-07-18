@@ -1,12 +1,9 @@
 use dioxus::{
-    html::{image, img},
     prelude::*,
 };
-use dioxus_desktop::use_window;
+
 use crate::renderer::State;
-use std::sync::Arc;
-use tokio;
-use log::{debug, info, warn, error};
+
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -18,11 +15,6 @@ struct SidebarVisibility {
 #[derive(Clone, Copy)]
 struct ImageZoom {
     zoom: Signal<u64>,
-}
-
-#[tokio::main]
-async fn create_wgpu_state() -> State {
-    State::new().await.unwrap()
 }
 
 #[component]
@@ -81,11 +73,6 @@ fn MenuBar() -> Element {
 
 #[component]
 pub fn ImageBoard() -> Element {
-    spawn( async move {
-        let mut wgpu_state = State::new().await;
-        State::render(&mut wgpu_state.unwrap());
-    });
-
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
     let actualzoom = curr_zoom / 4;
     rsx! {

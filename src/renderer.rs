@@ -1,13 +1,10 @@
 use wgpu::*;
 use std::sync::Arc;
-use std::rc::Rc;
-use image::GenericImageView;
 use dioxus_desktop::tao::{
     window::{Window, WindowBuilder},
     event_loop::{ControlFlow, EventLoop},
 };
 use crate::LogicalSize;
-use log::{debug};
 
 pub struct State {
     surface: wgpu::Surface<'static>,
