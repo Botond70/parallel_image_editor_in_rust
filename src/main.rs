@@ -1,10 +1,7 @@
 mod dioxusui;
 mod renderer;
 
-use dioxus::{
-    html::{image, img},
-    prelude::*,
-};
+use dioxus::prelude::*;
 use dioxus_desktop::{Config, LogicalSize, WindowBuilder};
 use crate::dioxusui::App;
 use env_logger;

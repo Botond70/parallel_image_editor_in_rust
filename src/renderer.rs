@@ -1,8 +1,8 @@
 use wgpu::*;
 use std::sync::Arc;
 use dioxus_desktop::tao::{
-    window::{Window, WindowBuilder},
-    event_loop::{ControlFlow, EventLoop},
+    window::{Window},
+    event_loop::{EventLoop},
 };
 use crate::LogicalSize;
 

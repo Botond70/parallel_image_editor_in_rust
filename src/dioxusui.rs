@@ -2,9 +2,7 @@ use dioxus::{
     html::HasFileData, prelude::*
 };
 
-use image::{load_from_memory, DynamicImage, GenericImageView, ImageReader};
-use crate::renderer::State;
-use std::fs::File;
+use image::{load_from_memory, GenericImageView};
 use std::io::Cursor;
 use base64::engine::general_purpose::STANDARD as base64_engine;
 use base64::Engine;
