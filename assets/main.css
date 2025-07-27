@@ -24,7 +24,7 @@ body,
     justify-content: space-evenly;
     align-items: center;
     max-width: 40vw;
-    height: 95vh;
+    height: 100vh;
     background-color: #353535;
     border-right: 1px solid #505050;
 }
@@ -81,11 +81,13 @@ body,
     align-items: center;
     justify-content: space-evenly;
     padding: 5px;
+    width: auto;
 }
 
 .work-space {
     display: flex;
     border: 1px solid green;
+    height: 100vh;
 }
 
 .image-container {
@@ -97,7 +99,7 @@ body,
     align-items: center;
     justify-content: center;
     width: 100vw;
-    height: 90vh;
+    height: 100vh;
     border: 1px solid purple;
 }
 
@@ -124,7 +126,7 @@ body,
 .footer-main {
 
     display: flex;
-    position: fixed;
+    position: absolute;
     z-index: 5;
     background-color: #353535;
     border-top: 2px solid #505050;

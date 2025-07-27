@@ -2,10 +2,13 @@ use dioxus::{
     html::HasFileData, prelude::*
 };
 
-use image::{load_from_memory, GenericImageView};
+use image::{load_from_memory, GenericImageView, DynamicImage};
 use std::io::Cursor;
 use base64::engine::general_purpose::STANDARD as base64_engine;
 use base64::Engine;
+use dioxus_native::use_wgpu;
+use wgpu::{Features, Limits};
+use crate::renderer::{PaintSource, Message};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -77,13 +80,26 @@ fn MenuBar() -> Element {
 pub fn ImageBoard() -> Element {
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
     let actualzoom = curr_zoom / 4;
+    let mut image_data = use_signal(|| None::<DynamicImage>);
     let mut image_data_url = use_signal(|| None::<String>);
+    // let paint_source = PaintSource::new();
+    // let sender = paint_source.sender();
+    // let paint_source_id = use_wgpu(|| paint_source);
+
+    // use_effect(move || {
+    //     if let Some(img) = image_data() {
+    //         println!("Sending image to renderer...");
+    //         sender.send(Message::SetImage(img)).unwrap();
+    //     }
+    // });
+
     rsx! {
         div { class: "image-container",
             ondragover: move |evt| {
                 evt.prevent_default();
             },
             ondrop: move |evt| {
+                println!("Drop event detected!");
                 evt.prevent_default();
 
                 
@@ -96,7 +112,9 @@ pub fn ImageBoard() -> Element {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
                                 println!("Loaded image: {:?}", img.dimensions());
-                                
+
+                                image_data.set(Some(img.clone()));
+
                                 let mut png_bytes = Vec::new();
                                 if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
                                     println!("Error during formatting: {err:?}");
@@ -117,8 +135,9 @@ pub fn ImageBoard() -> Element {
                     div { class: "image-inner",
                         height: "{actualzoom}vh",
                         img {
-                            src: "{url}",
                             id: "image-board",
+                            src: "{url}",
+                            draggable: false,
                         }
                     }
                 )},

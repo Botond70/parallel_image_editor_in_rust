@@ -3,21 +3,24 @@ name = "parallel_image_editor_in_rust"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["desktop"]
+desktop = ["dioxus/desktop"]
+native = ["dioxus/native"]
+
 [dependencies]
 anyhow = "1.0.98"
 base64 = "0.22.1"
-dioxus = { version = "0.6.0", features = ["desktop", "launch"] }
-dioxus-desktop = "0.6.0"
+dioxus = { version = "0.7.0-alpha.3", features = ["desktop", "launch"] }
+dioxus-desktop = "0.7.0-alpha.3"
+dioxus-html = "0.6.3"
+dioxus-native = { version = "0.7.0-alpha.3" }
 env_logger = "0.11.8"
 image = "0.25.6"
 log = "0.4.27"
 tokio = "1.46.1"
-wgpu = "25.0.2"
+wgpu = "24.0"
 winit = "0.30.11"
-
-[features]
-default = ["desktop"]
-desktop = ["dioxus/desktop"]
 
 [profile]
 
