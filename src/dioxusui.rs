@@ -1,14 +1,11 @@
 use dioxus::{
     html::HasFileData, prelude::*
 };
-
 use image::{load_from_memory, GenericImageView, DynamicImage};
 use std::io::Cursor;
 use base64::engine::general_purpose::STANDARD as base64_engine;
 use base64::Engine;
-use dioxus_native::use_wgpu;
-use wgpu::{Features, Limits};
-use crate::renderer::{PaintSource, Message};
+use crate::renderer::start_wgpu;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -80,18 +77,17 @@ fn MenuBar() -> Element {
 pub fn ImageBoard() -> Element {
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
     let actualzoom = curr_zoom / 4;
-    let mut image_data = use_signal(|| None::<DynamicImage>);
     let mut image_data_url = use_signal(|| None::<String>);
-    // let paint_source = PaintSource::new();
-    // let sender = paint_source.sender();
-    // let paint_source_id = use_wgpu(|| paint_source);
 
-    // use_effect(move || {
-    //     if let Some(img) = image_data() {
-    //         println!("Sending image to renderer...");
-    //         sender.send(Message::SetImage(img)).unwrap();
-    //     }
-    // });
+    use_effect(move || {
+        let image_data: Option<String> = image_data_url();
+        spawn(async move {
+                if !image_data.as_ref().is_none() {
+                    start_wgpu().await;
+                }
+            }
+        );
+    });
 
     rsx! {
         div { class: "image-container",
@@ -102,7 +98,6 @@ pub fn ImageBoard() -> Element {
                 println!("Drop event detected!");
                 evt.prevent_default();
 
-                
                 let file_engine = evt.files().unwrap();
                 let file_names = file_engine.files();
                 let first_file_name = file_names.iter().next().cloned().unwrap();
@@ -112,8 +107,6 @@ pub fn ImageBoard() -> Element {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
                                 println!("Loaded image: {:?}", img.dimensions());
-
-                                image_data.set(Some(img.clone()));
 
                                 let mut png_bytes = Vec::new();
                                 if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
@@ -134,13 +127,13 @@ pub fn ImageBoard() -> Element {
                     rsx!(
                     div { class: "image-inner",
                         height: "{actualzoom}vh",
-                        img {
+                        canvas {
                             id: "image-board",
-                            src: "{url}",
                             draggable: false,
                         }
                     }
-                )},
+                )
+                },
                 None => rsx!(p {"Drag and drop images here!"})
             }
         }
