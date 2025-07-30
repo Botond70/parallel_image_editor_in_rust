@@ -1,4 +1,4 @@
-use wasm_bindgen::{JsCast};
+use wasm_bindgen::JsCast;
 use web_sys::*;
 use wgpu::*;
 
@@ -33,17 +33,17 @@ pub async fn start_wgpu() {
             })
             .await
             .expect("No adapter found");
+        //Mozilla Firefox fix
+        let limits = adapter.limits();
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                    label: None,
-                    trace: wgpu::Trace::Off,
-                    memory_hints: wgpu::MemoryHints::Performance,
-                }
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                required_features: wgpu::Features::empty(),
+                required_limits: limits.clone(),
+                label: None,
+                trace: wgpu::Trace::Off,
+                memory_hints: wgpu::MemoryHints::Performance,
+            })
             .await
             .unwrap();
 
