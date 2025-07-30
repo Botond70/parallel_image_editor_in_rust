@@ -1,11 +1,9 @@
-use dioxus::{
-    html::HasFileData, prelude::*
-};
-use image::{load_from_memory, GenericImageView, DynamicImage};
-use std::io::Cursor;
-use base64::engine::general_purpose::STANDARD as base64_engine;
-use base64::Engine;
 use crate::renderer::start_wgpu;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64_engine;
+use dioxus::{html::HasFileData, prelude::*};
+use image::{DynamicImage, GenericImageView, load_from_memory};
+use std::io::Cursor;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -38,7 +36,11 @@ pub fn App() -> Element {
 #[component]
 fn SideBar() -> Element {
     let is_visible = *use_context::<SidebarVisibility>().state.read();
-    let sidebar_style = if is_visible { "display: flex;" } else { "display: none;" };
+    let sidebar_style = if is_visible {
+        "display: flex;"
+    } else {
+        "display: none;"
+    };
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
@@ -104,6 +106,9 @@ pub fn ImageBoard() -> Element {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
                                 println!("Loaded image: {:?}", img.dimensions());
+
+                                let diffuse_rgba = img.to_rgba8();
+                                let dimensions = img.dimensions();
 
                                 let mut png_bytes = Vec::new();
                                 if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
