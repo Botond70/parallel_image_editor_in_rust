@@ -37,10 +37,11 @@ pub fn App() -> Element {
 
 #[component]
 fn SideBar() -> Element {
-    let visibility = *use_context::<SidebarVisibility>().state.read();
+    let is_visible = *use_context::<SidebarVisibility>().state.read();
+    let sidebar_style = if is_visible { "display: flex;" } else { "display: none;" };
 
     rsx! {
-        div { class: "sidebar-container", style: if visibility { "display: flex;" } else { "display:none;" },
+        div { class: "sidebar-container", style: sidebar_style,
             button { class: "btn" , "Click me!"}
             button { class: "btn" , "Click me!"}
             button { class: "btn" , "Click me!"}
@@ -80,13 +81,9 @@ pub fn ImageBoard() -> Element {
     let mut image_data_url = use_signal(|| None::<String>);
 
     use_effect(move || {
-        let image_data: Option<String> = image_data_url();
-        spawn(async move {
-                if !image_data.as_ref().is_none() {
-                    start_wgpu().await;
-                }
-            }
-        );
+        if image_data_url().is_some() {
+            spawn(start_wgpu());
+        }
     });
 
     rsx! {
@@ -151,7 +148,8 @@ fn WorkSpace() -> Element {
 }
 #[component]
 fn FootBar() -> Element {
-    let mut curr_zoom = *use_context::<ImageZoom>().zoom.read();
+    let mut zoom_signal = use_context::<ImageZoom>().zoom;
+    let zoom_value = *zoom_signal.read();
 
     rsx! {
         div { class: "footer-main",
@@ -162,19 +160,17 @@ fn FootBar() -> Element {
                     input {
                         type: "range",
                         min: "20",
-                        value:"{curr_zoom}" ,
+                        value:"{zoom_value}" ,
                         max: "400",
                         class: "slider",
                         id:"range1",
                         oninput: move |e| {
-                            curr_zoom = e.value().parse::<u64>().unwrap();
-                            use_context::<ImageZoom>().zoom.set(curr_zoom);
-
+                            if let Ok(parsed) = e.value().parse::<u64>() {
+                                zoom_signal.set(parsed);
+                            }
                         }
-
-
                     },
-                    label{"{curr_zoom}"}
+                    label{"{zoom_value}%"}
                 }
             }
         }

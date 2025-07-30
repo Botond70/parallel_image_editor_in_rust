@@ -62,7 +62,6 @@ pub async fn start_wgpu() {
 
         surface.configure(&device, &config);
 
-        // Example: Clear screen with red color
         let frame = surface.get_current_texture().unwrap();
         let view = frame
             .texture
