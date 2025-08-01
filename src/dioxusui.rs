@@ -4,6 +4,7 @@ use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::io::Cursor;
+use web_sys::console;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -81,6 +82,9 @@ pub fn ImageBoard() -> Element {
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
     let actualzoom = curr_zoom / 4;
     let mut image_data_url = use_signal(|| None::<String>);
+    let mut translation = use_signal(|| (0.0, 0.0));
+    let mut is_dragging = use_signal(|| false);
+    let mut start_position = use_signal(|| (0.0, 0.0));
 
     use_effect(move || {
         if image_data_url().is_some() {
@@ -90,11 +94,31 @@ pub fn ImageBoard() -> Element {
 
     rsx! {
         div { class: "image-container",
+            onmousedown: move |evt| {
+                console::log_1(&"Mouse is held".into());
+                is_dragging.set(true);
+                start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+                //console::log_1(&format!("Event data: {:?}", evt).into());
+            },
+            onmouseup: move |evt| {
+                is_dragging.set(false);
+            },
+            onmousemove: move |evt| {
+                console::log_1(&format!("Event data: {:?}", evt).into());
+                if is_dragging() && image_data_url().is_some() {
+                    let (start_x, start_y) = (start_position().0, start_position().1);
+                    let dx = evt.coordinates().client().x - start_x;
+                    let dy = evt.coordinates().client().y - start_y;
+                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+                    let (tx, ty) = translation();
+                    translation.set((tx + dx, ty + dy));
+                }
+            },
             ondragover: move |evt| {
                 evt.prevent_default();
             },
             ondrop: move |evt| {
-                println!("Drop event detected!");
+                console::log_1(&"Drop event detected!".into());
                 evt.prevent_default();
 
                 let file_engine = evt.files().unwrap();
@@ -128,6 +152,7 @@ pub fn ImageBoard() -> Element {
                 Some(url) => {
                     rsx!(
                     div { class: "image-inner",
+                        style: format!("transform: translate({}px, {}px); height: {}vh;", translation().0, translation().1, actualzoom),
                         height: "{actualzoom}vh",
                         canvas {
                             id: "image-board",
@@ -136,7 +161,8 @@ pub fn ImageBoard() -> Element {
                     }
                 )
                 },
-                None => rsx!(p {"Drag and drop images here!"})
+                None => rsx!(p {class: "text",
+                    "Drag and drop images here!"})
             }
         }
     }

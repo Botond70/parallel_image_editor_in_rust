@@ -100,7 +100,7 @@ body,
     justify-content: center;
     width: 100vw;
     height: 100vh;
-    border: 1px solid purple;
+    border: 3px solid purple;
 }
 
 .image-inner {
@@ -207,4 +207,8 @@ body,
     /* Green background */
     cursor: pointer;
     /* Cursor on hover */
+}
+
+.text {
+    border: 1px solid yellow;
 }
