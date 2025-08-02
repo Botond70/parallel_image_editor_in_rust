@@ -1,10 +1,10 @@
 use crate::renderer::start_wgpu;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::{html::HasFileData, prelude::*};
+use dioxus::{html::{view, HasFileData}, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
-use std::io::Cursor;
-use web_sys::console;
+use std::{io::Cursor, path::absolute};
+use web_sys::{console, window};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -77,15 +77,30 @@ fn MenuBar() -> Element {
     }
 }
 
+fn clamp_translate_value(tx: f64, ty: f64, viewport: (f64, f64), image_size: (f64, f64)) -> (f64, f64) {
+    (
+        tx.min(image_size.0 + viewport.0).max(-image_size.0 - viewport.0),
+        ty.min(image_size.1 + viewport.1).max(-image_size.1 - viewport.1)
+    )
+}
+
 #[component]
 pub fn ImageBoard() -> Element {
     let curr_zoom = *use_context::<ImageZoom>().zoom.read();
-    let actualzoom = curr_zoom / 4;
+    let scale_value: f64 = curr_zoom as f64 / 100.0;
     let mut image_data_url = use_signal(|| None::<String>);
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
     let mut start_position = use_signal(|| (0.0, 0.0));
-
+    let get_viewport_size = || {
+        let window = window().expect("No global window found.");
+        let width = window.inner_width().unwrap();
+        let height = window.inner_height().unwrap();
+        (width.as_f64().unwrap(), height.as_f64().unwrap())
+    };
+    let mut viewport_size = use_signal(|| get_viewport_size());
+    let mut image_size = use_signal(|| (0.0, 0.0));
+    
     use_effect(move || {
         if image_data_url().is_some() {
             spawn(start_wgpu());
@@ -95,30 +110,28 @@ pub fn ImageBoard() -> Element {
     rsx! {
         div { class: "image-container",
             onmousedown: move |evt| {
-                console::log_1(&"Mouse is held".into());
                 is_dragging.set(true);
                 start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                //console::log_1(&format!("Event data: {:?}", evt).into());
+                viewport_size.set(get_viewport_size());
             },
-            onmouseup: move |evt| {
+            onmouseup: move |_| {
                 is_dragging.set(false);
             },
             onmousemove: move |evt| {
-                console::log_1(&format!("Event data: {:?}", evt).into());
                 if is_dragging() && image_data_url().is_some() {
                     let (start_x, start_y) = (start_position().0, start_position().1);
                     let dx = evt.coordinates().client().x - start_x;
                     let dy = evt.coordinates().client().y - start_y;
                     start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
                     let (tx, ty) = translation();
-                    translation.set((tx + dx, ty + dy));
+                    let clamped_translation = clamp_translate_value(tx + dx, ty + dy, viewport_size(), (image_size().0 * scale_value, image_size().1 * scale_value));
+                    translation.set((clamped_translation.0, clamped_translation.1));
                 }
             },
             ondragover: move |evt| {
                 evt.prevent_default();
             },
             ondrop: move |evt| {
-                console::log_1(&"Drop event detected!".into());
                 evt.prevent_default();
 
                 let file_engine = evt.files().unwrap();
@@ -130,10 +143,9 @@ pub fn ImageBoard() -> Element {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
                                 println!("Loaded image: {:?}", img.dimensions());
-
-                                let diffuse_rgba = img.to_rgba8();
-                                let dimensions = img.dimensions();
-
+                                
+                                image_size.set((img.dimensions().0 as f64, img.dimensions().1 as f64));
+                                
                                 let mut png_bytes = Vec::new();
                                 if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
                                     println!("Error during formatting: {err:?}");
@@ -152,8 +164,7 @@ pub fn ImageBoard() -> Element {
                 Some(url) => {
                     rsx!(
                     div { class: "image-inner",
-                        style: format!("transform: translate({}px, {}px); height: {}vh;", translation().0, translation().1, actualzoom),
-                        height: "{actualzoom}vh",
+                        style: format!("transform: translate({}px, {}px); scale: {};", translation().0 / scale_value, translation().1 / scale_value, scale_value),
                         canvas {
                             id: "image-board",
                             draggable: false,

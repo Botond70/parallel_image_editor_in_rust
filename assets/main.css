@@ -85,8 +85,7 @@ body,
 }
 
 .work-space {
-    display: flex;
-    border: 1px solid green;
+    display: flex; 
     height: 100vh;
 }
 
@@ -100,7 +99,6 @@ body,
     justify-content: center;
     width: 100vw;
     height: 100vh;
-    border: 3px solid purple;
 }
 
 .image-inner {
@@ -108,7 +106,7 @@ body,
     display: inline-block;
     align-items: center;
     justify-content: center;
-    border: 1 solid yellow;
+    /* border: 1 solid yellow; */
     width: auto;
     height: 75vh;
     /* background-color: white; */
@@ -207,8 +205,4 @@ body,
     /* Green background */
     cursor: pointer;
     /* Cursor on hover */
-}
-
-.text {
-    border: 1px solid yellow;
 }
