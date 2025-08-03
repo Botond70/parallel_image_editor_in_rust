@@ -5,6 +5,7 @@ use dioxus::{html::{view, HasFileData}, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::{io::Cursor, path::absolute};
 use web_sys::{console, window};
+use crate::dioxus_elements::geometry::WheelDelta;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -15,7 +16,7 @@ struct SidebarVisibility {
 }
 #[derive(Clone, Copy)]
 struct ImageZoom {
-    zoom: Signal<u64>,
+    zoom: Signal<i64>,
 }
 
 #[component]
@@ -84,10 +85,17 @@ fn clamp_translate_value(tx: f64, ty: f64, viewport: (f64, f64), image_size: (f6
     )
 }
 
+fn get_scroll_value(delta: WheelDelta) -> f64 {
+    match delta {
+        WheelDelta::Pixels(pixels) => pixels.y,
+        _ => 0.0,
+    }
+}
+
 #[component]
 pub fn ImageBoard() -> Element {
-    let curr_zoom = *use_context::<ImageZoom>().zoom.read();
-    let scale_value: f64 = curr_zoom as f64 / 100.0;
+    let mut zoom_signal = use_context::<ImageZoom>().zoom;
+    let scale_value: f64 = zoom_signal() as f64 / 100.0;
     let mut image_data_url = use_signal(|| None::<String>);
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
@@ -109,6 +117,11 @@ pub fn ImageBoard() -> Element {
 
     rsx! {
         div { class: "image-container",
+            style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
+            onwheel: move |evt| {
+                let scroll_delta = get_scroll_value(evt.delta()) * -0.01;
+                zoom_signal.set((zoom_signal() + scroll_delta as i64).max(20).min(700));
+            },
             onmousedown: move |evt| {
                 is_dragging.set(true);
                 start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
@@ -164,10 +177,12 @@ pub fn ImageBoard() -> Element {
                 Some(url) => {
                     rsx!(
                     div { class: "image-inner",
-                        style: format!("transform: translate({}px, {}px); scale: {};", translation().0 / scale_value, translation().1 / scale_value, scale_value),
                         canvas {
                             id: "image-board",
                             draggable: false,
+                            width: "1000px",
+                            height: "1200px",
+                            style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
                         }
                     }
                 )
@@ -203,11 +218,11 @@ fn FootBar() -> Element {
                         type: "range",
                         min: "20",
                         value:"{zoom_value}" ,
-                        max: "400",
+                        max: "700",
                         class: "slider",
                         id:"range1",
                         oninput: move |e| {
-                            if let Ok(parsed) = e.value().parse::<u64>() {
+                            if let Ok(parsed) = e.value().parse::<i64>() {
                                 zoom_signal.set(parsed);
                             }
                         }
