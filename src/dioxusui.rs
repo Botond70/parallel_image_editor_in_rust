@@ -1,11 +1,15 @@
+use crate::customlib::*;
+use crate::dioxus_elements::geometry::WheelDelta;
 use crate::renderer::start_wgpu;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::{html::{view, HasFileData}, prelude::*};
+use dioxus::{
+    html::{HasFileData, view},
+    prelude::*,
+};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::{io::Cursor, path::absolute};
 use web_sys::{console, window};
-use crate::dioxus_elements::geometry::WheelDelta;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -78,10 +82,17 @@ fn MenuBar() -> Element {
     }
 }
 
-fn clamp_translate_value(tx: f64, ty: f64, viewport: (f64, f64), image_size: (f64, f64)) -> (f64, f64) {
+fn clamp_translate_value(
+    tx: f64,
+    ty: f64,
+    viewport: (f64, f64),
+    image_size: (f64, f64),
+) -> (f64, f64) {
     (
-        tx.min(image_size.0 + viewport.0).max(-image_size.0 - viewport.0),
-        ty.min(image_size.1 + viewport.1).max(-image_size.1 - viewport.1)
+        tx.min(image_size.0 + viewport.0)
+            .max(-image_size.0 - viewport.0),
+        ty.min(image_size.1 + viewport.1)
+            .max(-image_size.1 - viewport.1),
     )
 }
 
@@ -96,7 +107,7 @@ fn get_scroll_value(delta: WheelDelta) -> f64 {
 pub fn ImageBoard() -> Element {
     let mut zoom_signal = use_context::<ImageZoom>().zoom;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
-    let mut image_data_url = use_signal(|| None::<String>);
+    let mut image_data = use_signal(|| None::<DynamicImage>);
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
     let mut start_position = use_signal(|| (0.0, 0.0));
@@ -108,10 +119,14 @@ pub fn ImageBoard() -> Element {
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
     let mut image_size = use_signal(|| (0.0, 0.0));
-    
+
     use_effect(move || {
-        if image_data_url().is_some() {
-            spawn(start_wgpu());
+        if !image_data().is_none() {
+            spawn(async move {
+                let mut wgpustate = start_wgpu(image_data().unwrap()).await;
+                console::log_1(&"Started WGPU".into());
+                wgpustate.draw_this_img().await;
+            });
         }
     });
 
@@ -131,7 +146,7 @@ pub fn ImageBoard() -> Element {
                 is_dragging.set(false);
             },
             onmousemove: move |evt| {
-                if is_dragging() && image_data_url().is_some() {
+                if is_dragging() && !image_data().is_none() {
                     let (start_x, start_y) = (start_position().0, start_position().1);
                     let dx = evt.coordinates().client().x - start_x;
                     let dy = evt.coordinates().client().y - start_y;
@@ -156,16 +171,14 @@ pub fn ImageBoard() -> Element {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
                                 println!("Loaded image: {:?}", img.dimensions());
-                                
+
                                 image_size.set((img.dimensions().0 as f64, img.dimensions().1 as f64));
-                                
+
                                 let mut png_bytes = Vec::new();
                                 if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
                                     println!("Error during formatting: {err:?}");
                                 }
-
-                                let base64_str = base64_engine.encode(&png_bytes);
-                                image_data_url.set(format!("data:image/png;base64,{}", base64_str).into());
+                                image_data.set(Some(img));
                             },
                             Err(err) => {println!("{err:?}");}
                         }
@@ -173,21 +186,21 @@ pub fn ImageBoard() -> Element {
                 });
             },
 
-            match image_data_url.as_ref() {
-                Some(url) => {
+            match image_data().is_none() {
+                false => {
                     rsx!(
                     div { class: "image-inner",
                         canvas {
                             id: "image-board",
                             draggable: false,
-                            width: "1000px",
-                            height: "1200px",
+                            width: format!("{}px",image_size().0),
+                            height: format!("{}px",image_size().1),
                             style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
                         }
                     }
                 )
                 },
-                None => rsx!(p {class: "text",
+                true => rsx!(p {class: "text",
                     "Drag and drop images here!"})
             }
         }
