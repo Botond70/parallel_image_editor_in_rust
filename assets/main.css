@@ -176,7 +176,7 @@ body,
     background: linear-gradient(to right, white 14%, white 14%, gray 14%);
 }
 
-.zoom-slider::-webkit-slider-runnable-track {
+.zoom-slider::-webkit-slider-runnable-track, .zoom-slider::-moz-range-track {
     background: transparent;
     height: 3px;
     border-radius: 2px;
@@ -190,5 +190,20 @@ body,
     border: 3px solid white;
     border-radius: 50%;
     cursor: pointer;
+    margin-top: -6px;
+}
+
+.zoom-slider::-moz-range-progress {
+    height: 3px;
+    background-color: white;
+}
+
+.zoom-slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: black;
+    border: 3px solid white;
+    border-radius: 50%;
+    cursor:pointer;
     margin-top: -6px;
 }
