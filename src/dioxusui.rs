@@ -4,7 +4,7 @@ use crate::renderer::start_wgpu;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::{
-    html::{HasFileData, view},
+    html::{progress, view, HasFileData},
     prelude::*,
 };
 use image::{DynamicImage, GenericImageView, load_from_memory};
@@ -21,14 +21,16 @@ struct SidebarVisibility {
 #[derive(Clone, Copy)]
 struct ImageZoom {
     zoom: Signal<i64>,
+    limits: Signal<(i64, i64)>,
 }
 
 #[component]
 pub fn App() -> Element {
     let visibility = use_signal(|| true);
     let img_scale = use_signal(|| 100);
+    let IMG_SCALE_LIMITS: Signal<(i64, i64)> = use_signal(|| (20, 700));
     use_context_provider(|| SidebarVisibility { state: visibility });
-    use_context_provider(|| ImageZoom { zoom: img_scale });
+    use_context_provider(|| ImageZoom { zoom: img_scale, limits: IMG_SCALE_LIMITS });
     rsx! {
 
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
@@ -106,6 +108,7 @@ fn get_scroll_value(delta: WheelDelta) -> f64 {
 #[component]
 pub fn ImageBoard() -> Element {
     let mut zoom_signal = use_context::<ImageZoom>().zoom;
+    let zoom_limits = use_context::<ImageZoom>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
     let mut image_data = use_signal(|| None::<DynamicImage>);
     let mut translation = use_signal(|| (0.0, 0.0));
@@ -135,7 +138,7 @@ pub fn ImageBoard() -> Element {
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
                 let scroll_delta = get_scroll_value(evt.delta()) * -0.01;
-                zoom_signal.set((zoom_signal() + scroll_delta as i64).max(20).min(700));
+                zoom_signal.set((zoom_signal() + scroll_delta as i64).max(zoom_limits().0).min(zoom_limits().1));
             },
             onmousedown: move |evt| {
                 is_dragging.set(true);
@@ -219,21 +222,29 @@ fn WorkSpace() -> Element {
 #[component]
 fn FootBar() -> Element {
     let mut zoom_signal = use_context::<ImageZoom>().zoom;
+    let zoom_limits = use_context::<ImageZoom>().limits;
     let zoom_value = *zoom_signal.read();
+    let mut progress_style = use_signal(|| String::from(""));
+
+    use_effect(move || {
+        let progress_percentage = zoom_signal() * 100 / zoom_limits().1;
+        progress_style.set(format!("background: linear-gradient(to right, white {}%, white {}%, gray {}%)", progress_percentage, progress_percentage, progress_percentage));
+    });
 
     rsx! {
         div { class: "footer-main",
             div { class: "footer-left"  },
             div { class: "footer-mid"   },
             div { class: "footer-right" ,
-                div { class: "zoom",
+                div { class: "zoom-slider-container",
                     input {
                         type: "range",
-                        min: "20",
+                        min: format!("{}", zoom_limits().0),
                         value:"{zoom_value}" ,
-                        max: "700",
-                        class: "slider",
+                        max: format!("{}", zoom_limits().1),
+                        class: "zoom-slider",
                         id:"range1",
+                        style: progress_style(),
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<i64>() {
                                 zoom_signal.set(parsed);
