@@ -123,6 +123,8 @@ fn clamp_translate_value(
 fn get_scroll_value(delta: WheelDelta) -> f64 {
     match delta {
         WheelDelta::Pixels(pixels) => pixels.y,
+        WheelDelta::Lines(lines) => lines.y,
+        WheelDelta::Pages(pages) => pages.y,
         _ => 0.0,
     }
 }
@@ -195,7 +197,12 @@ pub fn ImageBoard() -> Element {
         div { class: "image-container",
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
-                let scroll_delta = get_scroll_value(evt.delta()) * -0.01;
+                let mut scroll_delta = get_scroll_value(evt.delta());
+                if scroll_delta > 0.0 {
+                    scroll_delta = -5.0;
+                } else {
+                    scroll_delta = 5.0;
+                }
                 zoom_signal.set((zoom_signal() + scroll_delta as i64).max(zoom_limits().0).min(zoom_limits().1));
             },
             onmousedown: move |evt| {
