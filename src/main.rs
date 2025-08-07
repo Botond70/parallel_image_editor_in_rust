@@ -1,8 +1,9 @@
-mod customlib;
 mod dioxusui;
-mod renderer;
+mod state;
+mod components;
+mod utils;
 
-use crate::dioxusui::App;
+use dioxusui::App;
 use dioxus::prelude::*;
 use std::any::Any;
 use wgpu::{Features, Limits};
