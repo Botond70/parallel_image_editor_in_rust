@@ -195,6 +195,7 @@ impl State {
             })
             .await
             .expect("No adapter found");
+
         //Mozilla Firefox fix
         let limits = adapter.limits();
 
@@ -209,11 +210,24 @@ impl State {
             .await
             .unwrap();
 
-        let format = surface.get_capabilities(&adapter).formats[0];
+        let formats = surface.get_capabilities(&adapter).formats;
+        let preferred_formats =
+            Vec::<TextureFormat>::from([TextureFormat::Rgba8Unorm, TextureFormat::Rgba8UnormSrgb]);
+        let mut pref_format = surface.get_capabilities(&adapter).formats[0];
 
+        for cformat in preferred_formats.iter() {
+            if formats.contains(cformat) {
+                pref_format = *cformat;
+                break;
+            }
+        }
+
+        console::log_1(
+            &format!("Formats: {:?}", surface.get_capabilities(&adapter).formats).into(),
+        );
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format,
+            format: pref_format,
             width,
             height,
             present_mode: wgpu::PresentMode::Fifo,
@@ -244,7 +258,7 @@ impl State {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
 
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: pref_format,
 
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("diffuse_texture"),
