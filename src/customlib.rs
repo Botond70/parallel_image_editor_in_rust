@@ -27,16 +27,15 @@ pub struct State {
 
 impl State {
     pub async fn draw_next_img(&mut self) {
-        self.next();
-        self.load_image_in_deque();
-        self.draw_frame();
+        self.next().await;
+        self.draw_this_img().await;
     }
 
     pub async fn draw_this_img(&mut self) {
         self.load_image_in_deque().await;
-        console::log_1(&"Loaded img".into());
+        //console::log_1(&"Loaded img".into());
         self.draw_frame().await;
-        console::log_1(&"Drawing frame".into());
+        //console::log_1(&"Drawing frame".into());
     }
 
     pub async fn load_image_in_deque(&mut self) {
@@ -62,7 +61,7 @@ impl State {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("diffuse_texture"),
 
-            view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
+            view_formats: &[],
         });
 
         self.queue.write_texture(
@@ -127,7 +126,7 @@ impl State {
     }
 
     pub async fn next(&mut self) {
-        if self.img_index < self.img_vec.len() as u32 {
+        if self.img_index < (self.img_vec.len() - 1) as u32 {
             self.img_index = self.img_index + 1;
         } else {
             console::log_1(&"Can't increment img_index, at the vector limit".into())
@@ -141,7 +140,10 @@ impl State {
     pub async fn receive(&mut self) {
         loop {
             match self.rx.try_recv() {
-                Err(_) => return,
+                Err(_) => {
+                    console::log_1(&"Recieving failed".into());
+                    return;
+                }
                 Ok(input_file) => {
                     self.img_vec.push_back(input_file);
                 }
@@ -247,7 +249,7 @@ impl State {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("diffuse_texture"),
 
-            view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
+            view_formats: &[],
         });
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
