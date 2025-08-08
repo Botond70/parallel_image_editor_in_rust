@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::state::app_state::{SideBarVisibility};
+use crate::{app_router::Route, state::app_state::SideBarVisibility};
 
 #[component]
 pub fn MenuBar() -> Element {
@@ -11,7 +11,7 @@ pub fn MenuBar() -> Element {
 
     rsx! {
         div { class: "menubar-container",
-            div { class: "view-dropdown",
+            div { class: "dropdown-button-container",
                 button { class: "btn", "View"}
                 div { class: "dropdown-content",
                     button { onclick: toggle,
@@ -20,6 +20,7 @@ pub fn MenuBar() -> Element {
                     button { class: "btn", "Click me!" }
                 }
             }
+            Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
         }
     }
 }

@@ -2,6 +2,7 @@ mod dioxusui;
 mod state;
 mod components;
 mod utils;
+mod app_router;
 
 use dioxusui::App;
 use dioxus::prelude::*;

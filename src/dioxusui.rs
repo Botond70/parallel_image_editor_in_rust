@@ -7,6 +7,7 @@ use crate::components::{
     image_board::ImageBoard,
     footer::FootBar
 };
+use crate::app_router::Route;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
@@ -30,16 +31,16 @@ pub fn App() -> Element {
     rsx! {
 
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
-        MenuBar {}
-        WorkSpace {}
-        FootBar {}
+        Router::<Route> {}
 
     }
 }
 
 #[component]
-fn WorkSpace() -> Element {
+pub fn WorkSpace() -> Element {
     rsx! {
+        MenuBar {}
+        FootBar {}
         div { class: "work-space",
             SideBar {}
             ImageBoard {}
