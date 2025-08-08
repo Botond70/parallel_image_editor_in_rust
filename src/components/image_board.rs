@@ -1,13 +1,13 @@
-use dioxus::{
-    prelude::*,
-    html::{HasFileData, img, progress, view}
-};
 use crate::state::app_state::{ImageZoom, NextImage};
-use image::{DynamicImage, GenericImageView, load_from_memory};
-use web_sys::{console, window};
-use crate::utils::utils::{clamp_translate_value, get_scroll_value};
-use std::{collections::VecDeque, io::Cursor};
 use crate::utils::renderer::start_wgpu;
+use crate::utils::utils::{clamp_translate_value, get_scroll_value};
+use dioxus::{
+    html::{HasFileData, img, progress, view},
+    prelude::*,
+};
+use image::{DynamicImage, GenericImageView, load_from_memory};
+use std::{collections::VecDeque, io::Cursor};
+use web_sys::{console, window};
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -31,44 +31,43 @@ pub fn ImageBoard() -> Element {
     let mut next_img_signal = use_context::<NextImage>().count;
 
     use_effect(move || {
-        if !image_data_q().is_empty() {
+        if wgpu_on() {
             spawn(async move {
                 let mut image_datas: VecDeque<DynamicImage> = image_data_q.cloned();
 
                 let mut wgpustate = start_wgpu(image_datas.pop_front().unwrap()).await;
                 console::log_1(&"Started WGPU".into());
-                console::log_1(&format!("Images: {}", image_datas.len()).into());
+                console::log_1(&format!("Images: {}", image_datas.len() + 1).into());
                 let mut wgpusender = wgpustate.sender();
                 for img in image_datas.iter() {
                     wgpusender.send(img.clone());
-                    wgpustate.receive();
                 }
+                wgpustate.receive().await;
 
                 image_data_q.set(VecDeque::<DynamicImage>::new());
 
-                wgpustate.draw_next_img().await;
-                //loop {
-                let mut curr_img = wgpustate.img_vec.get(wgpustate.img_index as usize).unwrap();
-                image_size.set((
-                    curr_img.dimensions().0 as f64,
-                    curr_img.dimensions().1 as f64,
-                ));
+                wgpustate.load_and_draw();
+                console::log_1(&"Drew first image".into());
+                use_effect(move || {
+                    if *next_img_signal.read() > 0 {
+                        let mut num_of_nexts = *next_img_signal.read();
+                        num_of_nexts = num_of_nexts - wgpustate.skips;
+                        console::log_1(&format!("Skips: {}", num_of_nexts).into());
+                        console::log_1(&"Signal changed".into());
+                        wgpustate.skips = *next_img_signal.read();
+                        for i in 0..num_of_nexts {
+                            wgpustate.next();
+                        }
 
-                let mut num_of_nexts = *next_img_signal.read();
-                let mut updated = false;
-                if num_of_nexts > 0 {
-                    updated = true;
-                    for i in 1..num_of_nexts {
-                        wgpustate.next().await;
+                        let mut curr_img =
+                            wgpustate.img_vec.get(wgpustate.img_index as usize).unwrap();
+                        image_size.set((
+                            curr_img.dimensions().0 as f64,
+                            curr_img.dimensions().1 as f64,
+                        ));
                     }
-                    num_of_nexts = 0;
-                    next_img_signal.set(num_of_nexts);
-                } else {
-                    if updated {
-                        wgpustate.draw_this_img().await;
-                    };
-                }
-                //}
+                    wgpustate.load_and_draw();
+                });
             });
         }
     });
@@ -118,6 +117,8 @@ pub fn ImageBoard() -> Element {
                 zoom_signal.set(100);
 
                 spawn(async move {
+                    wgpu_on.set(false);
+                    next_img_signal.set(0);
                     let mut image_datas = VecDeque::<DynamicImage>::new();
                     for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
                         match load_from_memory(&bytes) {
@@ -136,14 +137,13 @@ pub fn ImageBoard() -> Element {
                             Err(err) => {println!("{err:?}");}
                         }
                     }}
-                    wgpu_on.set(true);
                     image_data_q.set(image_datas);
+                    wgpu_on.set(true);
                 });
             },
 
             match *wgpu_on.read() {
                 true => {
-                    println!("true on wgpusignal");
                     rsx!(
                     div { class: "image-inner",
                         canvas {

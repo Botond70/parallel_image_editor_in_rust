@@ -11,6 +11,7 @@ use wgpu::*;
 pub struct State {
     tx: Sender<DynamicImage>,
     rx: Receiver<DynamicImage>,
+    pub skips: u32,
     pub img_vec: VecDeque<DynamicImage>,
     pub img_index: u32,
     pub surface: wgpu::Surface<'static>,
@@ -26,19 +27,12 @@ pub struct State {
 }
 
 impl State {
-    pub async fn draw_next_img(&mut self) {
-        self.next().await;
-        self.draw_this_img().await;
+    pub fn draw_next_img(&mut self) {
+        self.next();
+        self.load_and_draw();
     }
 
-    pub async fn draw_this_img(&mut self) {
-        self.load_image_in_deque().await;
-        //console::log_1(&"Loaded img".into());
-        self.draw_frame().await;
-        //console::log_1(&"Drawing frame".into());
-    }
-
-    pub async fn load_image_in_deque(&mut self) {
+    pub fn load_and_draw(&mut self) {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
         use image::GenericImageView;
@@ -79,9 +73,7 @@ impl State {
             },
             texture_size,
         );
-    }
 
-    pub async fn draw_frame(&mut self) {
         console::log_1(&"Started drawing the frame".into());
         let mut encoder = self
             .device
@@ -89,6 +81,7 @@ impl State {
                 label: Some("Rendering Encoder"),
             });
         let frame = self.surface.get_current_texture().unwrap();
+
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -113,19 +106,72 @@ impl State {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+            let diffuse_texture_view =
+                diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+            let diffuse_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor {
+                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                address_mode_w: wgpu::AddressMode::ClampToEdge,
+                mag_filter: wgpu::FilterMode::Linear,
+                min_filter: wgpu::FilterMode::Nearest,
+                mipmap_filter: wgpu::FilterMode::Nearest,
+                ..Default::default()
+            });
+            let texture_bind_group_layout =
+                self.device
+                    .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        entries: &[
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 0,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Texture {
+                                    multisampled: false,
+                                    view_dimension: wgpu::TextureViewDimension::D2,
+                                    sample_type: wgpu::TextureSampleType::Float {
+                                        filterable: true,
+                                    },
+                                },
+                                count: None,
+                            },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 1,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                                count: None,
+                            },
+                        ],
+                        label: Some("texture_bind_group_layout"),
+                    });
+            self.diffuse_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
+                    },
+                ],
+                label: Some("diffuse_bind_group"),
+            });
+
             render_pass.set_pipeline(&self.render_pipeline); // 2.
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+            drop(render_pass);
         }
         self.queue.submit(Some(encoder.finish()));
         frame.present();
         console::log_1(&"Frame presented".into());
     }
 
-    pub async fn next(&mut self) {
+    pub fn next(&mut self) {
         if self.img_index < (self.img_vec.len() - 1) as u32 {
             self.img_index = self.img_index + 1;
         } else {
@@ -141,10 +187,11 @@ impl State {
         loop {
             match self.rx.try_recv() {
                 Err(_) => {
-                    console::log_1(&"Recieving failed".into());
+                    console::log_1(&"Recieving failed / stopped".into());
                     return;
                 }
                 Ok(input_file) => {
+                    console::log_1(&"File recieved".into());
                     self.img_vec.push_back(input_file);
                 }
             };
@@ -237,15 +284,6 @@ impl State {
         };
 
         surface.configure(&device, &config);
-
-        let frame = surface.get_current_texture().unwrap();
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Rendering Encoder"),
-        });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -392,6 +430,7 @@ impl State {
         State {
             tx: tx,
             rx: rx,
+            skips: 0,
             img_vec: img_vec,
             img_index: img_index,
             surface: surface,
