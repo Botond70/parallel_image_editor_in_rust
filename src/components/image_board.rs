@@ -1,6 +1,7 @@
 use crate::state::app_state::{ImageZoom, NextImage};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
+use dioxus::logger::tracing::instrument::WithSubscriber;
 use dioxus::{
     html::{HasFileData, img, progress, view},
     prelude::*,
@@ -29,6 +30,7 @@ pub fn ImageBoard() -> Element {
     let mut image_size = use_signal(|| (0.0, 0.0));
     let mut wgpu_on = use_signal(|| false);
     let mut next_img_signal = use_context::<NextImage>().count;
+    let mut draw_signal = use_signal(|| false);
 
     use_effect(move || {
         if wgpu_on() {
@@ -49,7 +51,10 @@ pub fn ImageBoard() -> Element {
                 wgpustate.load_and_draw();
                 console::log_1(&"Drew first image".into());
                 use_effect(move || {
-                    if *next_img_signal.read() > 0 {
+                    if draw_signal() {
+                        wgpustate.load_and_draw();
+                        draw_signal.set(false);
+                    } else if *next_img_signal.read() - wgpustate.skips > 0 {
                         let mut num_of_nexts = *next_img_signal.read();
                         num_of_nexts = num_of_nexts - wgpustate.skips;
                         console::log_1(&format!("Skips: {}", num_of_nexts).into());
@@ -65,8 +70,22 @@ pub fn ImageBoard() -> Element {
                             curr_img.dimensions().0 as f64,
                             curr_img.dimensions().1 as f64,
                         ));
+
+                        console::log_1(
+                            &format!(
+                                "Curr image dimensions: ({},{})",
+                                curr_img.dimensions().0,
+                                curr_img.dimensions().1
+                            )
+                            .into(),
+                        );
+                    };
+                });
+
+                use_effect(move || {
+                    if image_size.read().0 > 0.0 {
+                        draw_signal.set(true);
                     }
-                    wgpustate.load_and_draw();
                 });
             });
         }
@@ -123,20 +142,13 @@ pub fn ImageBoard() -> Element {
                     for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
-                                println!("Loaded image: {:?}", img.dimensions());
-
-                                image_size.set((img.dimensions().0 as f64, img.dimensions().1 as f64));
-
-                                let mut png_bytes = Vec::new();
-                                if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
-                                    println!("Error during formatting: {err:?}");
-                                }
 
                                 image_datas.push_back(img);
                             },
                             Err(err) => {println!("{err:?}");}
                         }
                     }}
+                    image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
                     image_data_q.set(image_datas);
                     wgpu_on.set(true);
                 });

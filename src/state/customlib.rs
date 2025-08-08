@@ -36,6 +36,10 @@ impl State {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
         use image::GenericImageView;
+        let mut config = self.config.clone();
+        config.width = diffuse_image.dimensions().0;
+        config.height = diffuse_image.dimensions().1;
+        self.config = config.clone();
         let dimensions = diffuse_image.dimensions();
         let texture_size = wgpu::Extent3d {
             width: dimensions.0,
@@ -50,7 +54,7 @@ impl State {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
 
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: config.clone().format,
 
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("diffuse_texture"),
