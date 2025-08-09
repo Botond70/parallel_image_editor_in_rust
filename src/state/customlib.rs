@@ -178,6 +178,15 @@ impl State {
     pub fn next(&mut self) {
         if self.img_index < (self.img_vec.len() - 1) as u32 {
             self.img_index = self.img_index + 1;
+            console::log_1(
+                &format!(
+                    "Incremented index : {}, vector length: {}, incremented at {}",
+                    self.img_index,
+                    self.img_vec.len(),
+                    self.img_vec.len() - 1,
+                )
+                .into(),
+            );
         } else {
             console::log_1(&"Can't increment img_index, at the vector limit".into())
         };
@@ -201,12 +210,19 @@ impl State {
             };
         }
     }
+    pub fn set_index(&mut self, i: u32) {
+        if i < self.img_vec.len() as u32 {
+            self.img_index = i;
+        } else {
+            console::log_1(&"The index is out of bounds".into());
+        }
+    }
 
-    pub async fn new(initial_dyn_image: DynamicImage) -> State {
+    pub async fn new(initial_dyn_image: &DynamicImage) -> State {
         let (tx, rx): (Sender<DynamicImage>, Receiver<DynamicImage>) = mpsc::channel();
         let img_index: u32 = 0;
         let mut img_vec = VecDeque::<DynamicImage>::new();
-        img_vec.push_back(initial_dyn_image);
+        img_vec.push_back(initial_dyn_image.clone());
         let diffuse_rgba = img_vec.back().unwrap().to_rgba8();
         use image::GenericImageView;
         let dimensions = img_vec.back().unwrap().dimensions();

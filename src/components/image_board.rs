@@ -1,15 +1,9 @@
-use crate::state::app_state::{ImageZoom, NextImage};
+use crate::state::app_state::{ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
-use dioxus::html::discard;
-use dioxus::logger::tracing::instrument::WithSubscriber;
-use dioxus::{
-    html::{HasFileData, img, progress, view},
-    prelude::*,
-};
+use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
-use std::future::ready;
-use std::{collections::VecDeque, io::Cursor};
+use std::collections::VecDeque;
 use web_sys::{console, window};
 
 #[component]
@@ -17,8 +11,8 @@ pub fn ImageBoard() -> Element {
     let mut zoom_signal = use_context::<ImageZoom>().zoom;
     let zoom_limits = use_context::<ImageZoom>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
-    let mut image_data = use_signal(|| None::<DynamicImage>);
-    let mut image_data_q = use_signal(|| VecDeque::<DynamicImage>::new());
+    let mut image_data_q = use_context::<ImageVec>().vector;
+    let mut curr_index = use_context::<ImageVec>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
     let mut start_position = use_signal(|| (0.0, 0.0));
@@ -30,7 +24,7 @@ pub fn ImageBoard() -> Element {
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
     let mut image_size = use_signal(|| (0.0, 0.0));
-    let mut wgpu_on = use_signal(|| false);
+    let mut wgpu_on = use_context::<WGPUSignal>().signal;
     let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
     let mut ready_signal = use_signal(|| false);
@@ -40,20 +34,24 @@ pub fn ImageBoard() -> Element {
         if wgpu_on() {
             spawn(async move {
                 let mut image_datas: VecDeque<DynamicImage> = image_data_q.cloned();
-
-                let mut wgpustate = start_wgpu(image_datas.pop_front().unwrap()).await;
+                console::log_1(&format!("Images : {}", image_datas.clone().len()).into());
+                console::log_1(&format!("Current index: {}", curr_index() as u32).into());
+                let first_img = image_datas.get(curr_index()).unwrap();
+                let mut wgpustate = start_wgpu(first_img).await;
+                wgpustate.set_index(curr_index() as u32);
+                curr_index.set(wgpustate.img_index as usize);
                 console::log_1(&"Started WGPU".into());
-                console::log_1(&format!("Images: {}", image_datas.len() + 1).into());
+                console::log_1(&format!("Images: {}", image_datas.len()).into());
                 let mut wgpusender = wgpustate.sender();
-                for img in image_datas.iter() {
-                    wgpusender.send(img.clone());
+                for (i, img) in image_datas.iter().enumerate() {
+                    if i > 0 {
+                        wgpusender.send(img.clone());
+                    }
                 }
                 wgpustate.receive().await;
-
-                image_data_q.set(VecDeque::<DynamicImage>::new());
-
-                wgpustate.load_and_draw();
+                ready_signal.set(true);
                 console::log_1(&"Drew first image".into());
+
                 use_effect(move || {
                     if (!ready_signal()) {
                         draw_signal.set(false);
@@ -75,7 +73,7 @@ pub fn ImageBoard() -> Element {
                         for i in 0..num_of_nexts {
                             wgpustate.next();
                         }
-
+                        curr_index.set(wgpustate.img_index as usize);
                         let mut curr_img =
                             wgpustate.img_vec.get(wgpustate.img_index as usize).unwrap();
                         image_size.set((
@@ -95,6 +93,7 @@ pub fn ImageBoard() -> Element {
                         ready_signal.set(true);
                     } else if next_img_signal() == 0 as u32 {
                         wgpustate.skips = 0;
+                        curr_index.set(0 as usize);
                     };
                 });
             });
@@ -147,6 +146,8 @@ pub fn ImageBoard() -> Element {
 
                 spawn(async move {
                     wgpu_on.set(false);
+                    draw_signal.set(false);
+                    ready_signal.set(false);
                     next_img_signal.set(0);
                     let mut image_datas = VecDeque::<DynamicImage>::new();
                     for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
