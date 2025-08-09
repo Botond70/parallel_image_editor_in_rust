@@ -1,12 +1,14 @@
 use crate::state::app_state::{ImageZoom, NextImage};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
+use dioxus::html::discard;
 use dioxus::logger::tracing::instrument::WithSubscriber;
 use dioxus::{
     html::{HasFileData, img, progress, view},
     prelude::*,
 };
 use image::{DynamicImage, GenericImageView, load_from_memory};
+use std::future::ready;
 use std::{collections::VecDeque, io::Cursor};
 use web_sys::{console, window};
 
@@ -31,7 +33,9 @@ pub fn ImageBoard() -> Element {
     let mut wgpu_on = use_signal(|| false);
     let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
+    let mut ready_signal = use_signal(|| false);
 
+    #[allow(unused)]
     use_effect(move || {
         if wgpu_on() {
             spawn(async move {
@@ -51,10 +55,18 @@ pub fn ImageBoard() -> Element {
                 wgpustate.load_and_draw();
                 console::log_1(&"Drew first image".into());
                 use_effect(move || {
-                    if draw_signal() {
-                        wgpustate.load_and_draw();
+                    if (!ready_signal()) {
                         draw_signal.set(false);
-                    } else if *next_img_signal.read() - wgpustate.skips > 0 {
+                    } else {
+                        draw_signal.set(true);
+                    }
+                });
+
+                use_effect(move || {
+                    if *draw_signal.read() {
+                        wgpustate.load_and_draw();
+                        ready_signal.set(false);
+                    } else if (next_img_signal() > wgpustate.skips) {
                         let mut num_of_nexts = *next_img_signal.read();
                         num_of_nexts = num_of_nexts - wgpustate.skips;
                         console::log_1(&format!("Skips: {}", num_of_nexts).into());
@@ -79,16 +91,14 @@ pub fn ImageBoard() -> Element {
                             )
                             .into(),
                         );
+
+                        ready_signal.set(true);
+                    } else if next_img_signal() == 0 as u32 {
+                        wgpustate.skips = 0;
                     };
                 });
-
-                use_effect(move || {
-                    if image_size.read().0 > 0.0 {
-                        draw_signal.set(true);
-                    }
-                });
             });
-        }
+        };
     });
 
     rsx! {
@@ -149,13 +159,17 @@ pub fn ImageBoard() -> Element {
                         }
                     }}
                     image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
-                    image_data_q.set(image_datas);
+                           let mut img_vec = image_data_q();
+                    img_vec.append(&mut image_datas);
+                    image_data_q.set(img_vec);
+                    console::log_1(&format!("New vec count: {}", image_data_q().len()).into());
                     wgpu_on.set(true);
                 });
             },
 
             match *wgpu_on.read() {
                 true => {
+
                     rsx!(
                     div { class: "image-inner",
                         canvas {
