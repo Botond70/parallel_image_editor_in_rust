@@ -1,13 +1,13 @@
 use crate::state::app_state::{ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
-use web_sys::{console, window};
-use base64::engine::general_purpose::STANDARD as base64_engine;
-use base64::Engine;
 use std::io::Cursor;
+use web_sys::{console, window};
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -44,6 +44,10 @@ pub fn ImageBoard() -> Element {
                 let mut wgpustate = start_wgpu(first_img).await;
                 wgpustate.set_index(curr_index() as u32);
                 curr_index.set(wgpustate.img_index as usize);
+                image_size.set((
+                    first_img.dimensions().0 as f64,
+                    first_img.dimensions().1 as f64,
+                ));
                 console::log_1(&"Started WGPU".into());
                 console::log_1(&format!("Images: {}", image_datas.len()).into());
                 let mut wgpusender = wgpustate.sender();
@@ -68,7 +72,13 @@ pub fn ImageBoard() -> Element {
                     if *draw_signal.read() {
                         wgpustate.load_and_draw();
                         ready_signal.set(false);
-                    } else if (next_img_signal() > wgpustate.skips) {
+                    } else if curr_index() != wgpustate.img_index as usize {
+                        wgpustate.set_index(curr_index() as u32);
+                        ready_signal.set(true);
+                    }
+
+                    /*
+                    (next_img_signal() > wgpustate.skips) {
                         let mut num_of_nexts = *next_img_signal.read();
                         num_of_nexts = num_of_nexts - wgpustate.skips;
                         console::log_1(&format!("Skips: {}", num_of_nexts).into());
@@ -98,7 +108,7 @@ pub fn ImageBoard() -> Element {
                     } else if next_img_signal() == 0 as u32 {
                         wgpustate.skips = 0;
                         curr_index.set(0 as usize);
-                    };
+                    };*/
                 });
             });
         };

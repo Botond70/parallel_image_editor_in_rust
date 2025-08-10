@@ -236,6 +236,19 @@ impl State {
 
         let window = window().unwrap();
         let document = window.document().unwrap();
+
+        loop {
+            match document.get_element_by_id("image-board").is_some() {
+                false => {
+                    console::log_1(&"Waiting for canvas".into());
+                }
+                true => {
+                    console::log_1(&"Found canvas".into());
+                    break;
+                }
+            }
+        }
+
         let canvas = document
             .get_element_by_id("image-board")
             .unwrap()
