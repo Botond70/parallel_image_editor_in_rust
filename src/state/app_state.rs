@@ -22,6 +22,7 @@ pub struct NextImage {
 #[derive(Clone, Copy)]
 pub struct ImageVec {
     pub vector: Signal<VecDeque<DynamicImage>>,
+    pub base64_vector: Signal<VecDeque<String>>,
     pub curr_image_index: Signal<usize>,
 }
 

@@ -19,6 +19,7 @@ pub fn App() -> Element {
     let img_scale = use_signal(|| 100);
     let IMG_SCALE_LIMITS: Signal<(i64, i64)> = use_signal(|| (20, 700));
     let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
+    let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
     let image_index = use_signal(|| 0 as usize);
     let img_next = use_signal(|| false);
     let img_iter = use_signal(|| 0 as u32);
@@ -38,6 +39,7 @@ pub fn App() -> Element {
     use_context_provider(|| ImageVec {
         vector: image_vector,
         curr_image_index: image_index,
+        base64_vector: image_vector_base64,
     });
     rsx! {
 

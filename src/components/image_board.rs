@@ -5,6 +5,9 @@ use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
 use web_sys::{console, window};
+use base64::engine::general_purpose::STANDARD as base64_engine;
+use base64::Engine;
+use std::io::Cursor;
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -12,6 +15,7 @@ pub fn ImageBoard() -> Element {
     let zoom_limits = use_context::<ImageZoom>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
     let mut image_data_q = use_context::<ImageVec>().vector;
+    let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
     let mut curr_index = use_context::<ImageVec>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
@@ -150,19 +154,30 @@ pub fn ImageBoard() -> Element {
                     ready_signal.set(false);
                     next_img_signal.set(0);
                     let mut image_datas = VecDeque::<DynamicImage>::new();
+                    let mut image_datas_base64 = VecDeque::<String>::new();
                     for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
+                                let mut png_bytes = Vec::new();
+                                if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
+                                    println!("Error during formatting: {err:?}");
+                                }
 
+                                let base64_str = base64_engine.encode(&png_bytes);
+
+                                image_datas_base64.push_back(format!("data:image/png;base64, {}", base64_str));
                                 image_datas.push_back(img);
                             },
                             Err(err) => {println!("{err:?}");}
                         }
                     }}
                     image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
-                           let mut img_vec = image_data_q();
+                    let mut img_vec = image_data_q();
                     img_vec.append(&mut image_datas);
                     image_data_q.set(img_vec);
+                    let mut img_vec_base64 = image_vector_base64();
+                    img_vec_base64.append(&mut image_datas_base64);
+                    image_vector_base64.set(img_vec_base64);
                     console::log_1(&format!("New vec count: {}", image_data_q().len()).into());
                     wgpu_on.set(true);
                 });

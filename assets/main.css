@@ -276,6 +276,7 @@ body,
     display: grid;
     justify-content: center;
     padding-top: 2.5em;
+    height: fit-content;
 }
 
 .image-display img {
@@ -291,6 +292,10 @@ body,
 .image-display img:hover {
     scale: 1.05;
     cursor: pointer;
+}
+
+.image-display p {
+    height: fit-content;
 }
 
 .back-button-wrapper {
@@ -320,4 +325,13 @@ body,
     opacity: 1;
     scale: 1.1;
     cursor: pointer;
+}
+
+.is-selected-wrapper {
+    border-radius: 1em;
+    background-color: rgba(200, 200, 200, 0.15);
+    position: relative;
+    padding: 1em 1em 0 1em;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.75);
+    transition: scale 0.5s ease-in-out, background-color 0.5s ease-in-out;
 }
