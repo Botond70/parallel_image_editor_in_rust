@@ -10,8 +10,6 @@ use image::DynamicImage;
 use web_sys::{console, window};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-pub const TEST_IMG: Asset = asset!("/assets/wgpu_jumpscare.png");
-pub const TEST_IMG2: Asset = asset!("/assets/testimage2.jpg");
 
 #[component]
 pub fn App() -> Element {
