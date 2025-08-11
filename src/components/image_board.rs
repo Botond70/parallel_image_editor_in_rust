@@ -43,7 +43,6 @@ pub fn ImageBoard() -> Element {
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let mut wgpustate = start_wgpu(first_img).await;
                 wgpustate.set_index(curr_index() as u32);
-                curr_index.set(wgpustate.img_index as usize);
                 image_size.set((
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
@@ -76,39 +75,6 @@ pub fn ImageBoard() -> Element {
                         wgpustate.set_index(curr_index() as u32);
                         ready_signal.set(true);
                     }
-
-                    /*
-                    (next_img_signal() > wgpustate.skips) {
-                        let mut num_of_nexts = *next_img_signal.read();
-                        num_of_nexts = num_of_nexts - wgpustate.skips;
-                        console::log_1(&format!("Skips: {}", num_of_nexts).into());
-                        console::log_1(&"Signal changed".into());
-                        wgpustate.skips = *next_img_signal.read();
-                        for i in 0..num_of_nexts {
-                            wgpustate.next();
-                        }
-                        curr_index.set(wgpustate.img_index as usize);
-                        let mut curr_img =
-                            wgpustate.img_vec.get(wgpustate.img_index as usize).unwrap();
-                        image_size.set((
-                            curr_img.dimensions().0 as f64,
-                            curr_img.dimensions().1 as f64,
-                        ));
-
-                        console::log_1(
-                            &format!(
-                                "Curr image dimensions: ({},{})",
-                                curr_img.dimensions().0,
-                                curr_img.dimensions().1
-                            )
-                            .into(),
-                        );
-
-                        ready_signal.set(true);
-                    } else if next_img_signal() == 0 as u32 {
-                        wgpustate.skips = 0;
-                        curr_index.set(0 as usize);
-                    };*/
                 });
             });
         };
