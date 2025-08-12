@@ -4,7 +4,7 @@ use crate::app_router::Route;
 use crate::components::{
     footer::FootBar, image_board::ImageBoard, menu_bar::MenuBar, side_bar::SideBar,
 };
-use crate::state::app_state::{ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal};
+use crate::state::app_state::{GalleryState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal};
 use dioxus::prelude::*;
 use image::DynamicImage;
 use web_sys::{console, window};
@@ -22,6 +22,12 @@ pub fn App() -> Element {
     let img_next = use_signal(|| false);
     let img_iter = use_signal(|| 0 as u32);
     let wgpu_signal = use_signal(|| false);
+    let grid_size = use_signal(|| String::from("medium"));
+    let dropdown_visible = use_signal(|| false);
+    use_context_provider(|| GalleryState {
+        grid_size,
+        visibility: dropdown_visible,
+    });
     use_context_provider(|| WGPUSignal {
         signal: wgpu_signal,
     });

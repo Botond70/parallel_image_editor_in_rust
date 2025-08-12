@@ -30,3 +30,9 @@ pub struct ImageVec {
 pub struct WGPUSignal {
     pub signal: Signal<bool>,
 }
+
+#[derive(Clone, Copy)]
+pub struct GalleryState {
+    pub grid_size: Signal<String>,
+    pub visibility: Signal<bool>,
+}

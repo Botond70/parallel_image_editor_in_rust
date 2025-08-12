@@ -1,5 +1,5 @@
 use crate::app_router::Route;
-use crate::state::app_state::ImageVec;
+use crate::state::app_state::{GalleryState, ImageVec};
 use dioxus::html::col;
 use dioxus::html::g::dangerous_inner_html;
 use web_sys::console;
@@ -17,20 +17,56 @@ const CHEVRON_DOWN_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='no
 ";
 
 #[component]
-pub fn Gallery() -> Element {
-    let img_vec_base64 = use_context::<ImageVec>().base64_vector;
-    let img_vec = use_context::<ImageVec>().vector.clone();
-    let mut curr_index = use_context::<ImageVec>().curr_image_index;
-    let img_vector = img_vec_base64().clone();
-    let mut grid_size = use_signal(|| "medium");
-    let mut dropdown_visible = use_signal(|| false);
+fn GalleryHeader() -> Element {
+    let mut grid_size = use_context::<GalleryState>().grid_size;
+    let mut dropdown_visible = use_context::<GalleryState>().visibility;
     let visibility = if dropdown_visible() {
         "display: column;"
     } else {
         "display: none;"
     };
 
-    let (column_width, image_width, image_height) = match grid_size() {
+    rsx! {
+        div { class: "gallery-page-header",
+            div { class: "back-button-wrapper",
+                Link { to: Route::WorkSpace,
+                    img { class: "back-button",
+                        src: BACK_BUTTON
+                    }
+                }
+            }
+            p { "GALLERY" }
+            div { class: "grid-size-select-container",
+                onclick: move |_| {
+                    dropdown_visible.set(!dropdown_visible());
+                },
+                div { class: "grid-size-select-button",
+                    dangerous_inner_html: GRID_SIZE_BUTTON_SVG
+                }
+                div { class: "chevron-button",
+                    dangerous_inner_html: CHEVRON_DOWN_SVG
+                }
+                div { class: "dropdown-content",
+                    style: visibility,
+                    button { class: "btn", onclick: move |_| { grid_size.set(String::from("large")) }, "Large" }
+                    button { class: "btn", onclick: move |_| { grid_size.set(String::from("medium")) }, "Medium" }
+                    button { class: "btn", onclick: move |_| { grid_size.set(String::from("small")) }, "Small" }
+                }
+            }
+        }
+    }
+}
+
+
+#[component]
+pub fn Gallery() -> Element {
+    let img_vec_base64 = use_context::<ImageVec>().base64_vector;
+    let img_vec = use_context::<ImageVec>().vector.clone();
+    let mut curr_index = use_context::<ImageVec>().curr_image_index;
+    let grid_size = use_context::<GalleryState>().grid_size;
+    let img_vector = img_vec_base64().clone();
+
+    let (column_width, image_width, image_height) = match &*grid_size() {
         "small" => (210, 180, 90),
         "medium" => (390, 360, 180),
         "large" => (510, 480, 270),
@@ -41,33 +77,7 @@ pub fn Gallery() -> Element {
 
     rsx! {
         div { class: "gallery-page",
-            div { class: "gallery-page-header",
-                div { class: "back-button-wrapper",
-                    Link { to: Route::WorkSpace,
-                        img { class: "back-button",
-                            src: BACK_BUTTON
-                        }
-                    }
-                }
-                p { "GALLERY" }
-                div { class: "grid-size-select-container",
-                    onclick: move |_| {
-                        dropdown_visible.set(!dropdown_visible());
-                    },
-                    div { class: "grid-size-select-button",
-                        dangerous_inner_html: GRID_SIZE_BUTTON_SVG
-                    }
-                    div { class: "chevron-button",
-                        dangerous_inner_html: CHEVRON_DOWN_SVG
-                    }
-                    div { class: "dropdown-content",
-                        style: visibility,
-                        button { class: "btn", onclick: move |_| { grid_size.set("large") }, "Large" }
-                        button { class: "btn", onclick: move |_| { grid_size.set("medium") }, "Medium" }
-                        button { class: "btn", onclick: move |_| { grid_size.set("small") }, "Small" }
-                    }
-                }
-            }
+            GalleryHeader { }
             div { class: "image-display-container",
                 style: format!("grid-template-columns: repeat(auto-fit, minmax({}px, 1fr));", column_width),
                 {
