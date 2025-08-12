@@ -69,11 +69,13 @@ body,
     color: #F5F5F5;
     border-radius: 5px;
     padding: 3px;
+    transition: background-color 0.15s ease-in-out;
 }
 
 .btn:hover {
-    background-color: #34a8eb;
+    background-color: rgba(255, 255, 255, 0.15);
     color: white;
+    cursor: pointer;
 }
 
 .dropdown-button-container:hover .dropdown-content {
@@ -330,7 +332,58 @@ body,
     border-radius: 1em;
     background-color: rgba(200, 200, 200, 0.15);
     position: relative;
-    padding: 1em 1em 0 1em;
+    padding: 15px 15px 0 15px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.75);
     transition: scale 0.5s ease-in-out, background-color 0.5s ease-in-out;
+}
+
+.gallery-page .grid-size-select-container {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    right: 0;
+    width: fit-content;
+    height: fit-content;
+    margin-right: 10px;
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 0.5em;
+    border: 1px solid rgba(0, 0, 0, 0.40);
+    transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
+}
+
+.gallery-page .grid-size-select-button {
+    width: 30px;
+    height: 30px;
+    padding: 0.15em 0 0.15em 0.25em;
+}
+
+.gallery-page .chevron-button {
+    width: 15px;
+    height: 15px;
+    padding-right: 0.25em;
+}
+
+.gallery-page .grid-size-select-container:hover {
+    background-color: rgba(50, 50, 50, 1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+}
+
+.gallery-page .dropdown-content {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.gallery-page .grid-size-select-container .dropdown-content {
+    z-index: 105;
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-top: 3px;
+    top: 100%;
+    right: 0;
+    position: absolute;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 5px;
+    width: 140px;
 }

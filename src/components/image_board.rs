@@ -144,7 +144,7 @@ pub fn ImageBoard() -> Element {
                                 image_datas_base64.push_back(format!("data:image/png;base64, {}", base64_str));
                                 image_datas.push_back(img);
                             },
-                            Err(err) => {println!("{err:?}");}
+                            Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
                         }
                     }}
                     image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
