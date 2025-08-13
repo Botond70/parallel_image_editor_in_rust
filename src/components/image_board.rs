@@ -98,8 +98,10 @@ pub fn ImageBoard() -> Element {
                 viewport_size.set(get_viewport_size());
 
             },
+            onmouseleave: move |_| {
+                is_dragging.set(false);
+            },
             onmouseup: move |_| {
-
                 is_dragging.set(false);
             },
             onmousemove: move |evt| {

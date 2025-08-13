@@ -28,15 +28,32 @@ body,
     max-width: 40vw;
     height: 100vh;
     background-color: #353535;
-    border-right: 1px solid #505050;
+    border-right: 2px solid #505050;
+}
+
+.button-contents {
+    width: auto;
+    height: auto;
+    padding: 0.25em;
+    color: rgb(175, 175, 175);
+    transition: color 0.15s ease-in-out;
+}
+
+.button-text {
+    margin: 0;
+}
+
+.btn:hover .button-contents {
+    color: white;
 }
 
 .menubar-container {
     z-index: 10;
     position: fixed;
     display: flex;
-    gap: 0.5em;
+    align-items: center;
     width: 100vw;
+    height: 30px;
     background-color: #353535;
     border-bottom: 2px solid #505050;
 }
