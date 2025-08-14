@@ -5,7 +5,7 @@ body {
     z-index: 0;
     background-color: #1E1E1E;
     color: white;
-    font-family: 'Figtree','Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Figtree', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     height: 100%;
     width: 100%;
     margin: 0;
@@ -48,8 +48,25 @@ body,
 }
 
 .hsv-panel-container {
+    position: fixed;
+    z-index: 500;
+    top: 100;
+    left: 100;
+    border: 1px solid grey;
+    border-radius: 15px;
+    background-color: #353535;
+
+    min-width: 100px;
+    min-height: 100px;
+
+    height: fit-content;
+    width: fit-content;
+
+    padding: 10px;
+}
+
+.hsv-slider {
     display: flex;
-    position: absolute;
 }
 
 .menubar-container {
@@ -111,7 +128,7 @@ body,
 }
 
 .work-space {
-    display: flex; 
+    display: flex;
     height: 100vh;
 }
 
@@ -158,7 +175,7 @@ body,
     width: 100vw;
 }
 
-.footer-main > div {
+.footer-main>div {
     display: flex;
     width: 33.33vw;
     align-items: center;
@@ -166,7 +183,7 @@ body,
     overflow: hidden;
 }
 
-.footer-main > div + div::after {
+.footer-main>div+div::after {
     content: "";
     background: gray;
     position: absolute;
@@ -202,7 +219,8 @@ body,
     background: linear-gradient(to right, white 14%, white 14%, gray 14%);
 }
 
-.zoom-slider::-webkit-slider-runnable-track, .zoom-slider::-moz-range-track {
+.zoom-slider::-webkit-slider-runnable-track,
+.zoom-slider::-moz-range-track {
     background: transparent;
     height: 3px;
     border-radius: 2px;
@@ -230,7 +248,7 @@ body,
     background: black;
     border: 3px solid white;
     border-radius: 50%;
-    cursor:pointer;
+    cursor: pointer;
     margin-top: -6px;
 }
 

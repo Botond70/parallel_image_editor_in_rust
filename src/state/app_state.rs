@@ -36,3 +36,11 @@ pub struct GalleryState {
     pub grid_size: Signal<String>,
     pub visibility: Signal<bool>,
 }
+
+#[derive(Clone, Copy)]
+pub struct HSVState {
+    pub panel_visible: Signal<bool>,
+    pub hue: Signal<f64>,
+    pub saturation: Signal<f64>,
+    pub value: Signal<f64>,
+}

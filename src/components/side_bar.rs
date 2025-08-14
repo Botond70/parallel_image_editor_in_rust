@@ -1,4 +1,4 @@
-use crate::state::app_state::{NextImage, SideBarVisibility};
+use crate::state::app_state::{HSVState, NextImage, SideBarVisibility};
 use dioxus::prelude::*;
 use web_sys::console;
 
@@ -7,11 +7,52 @@ const HSV_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none
 </svg>";
 
 #[component]
-fn HSVPanel() -> Element {
+pub fn HSVPanel() -> Element {
+    let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
+    let mut hue = use_context::<HSVState>().hue;
+    let mut hvalue = hue();
+    let mut sat = use_context::<HSVState>().saturation;
+    let mut val = use_context::<HSVState>().value;
+
+    let mut hsv_panel_style = if hsv_is_visible() {
+        "display: grid;"
+    } else {
+        "display: none;"
+    };
+    use_effect(move || {
+        hsv_panel_style = if hsv_is_visible() {
+            "display: grid;"
+        } else {
+            "display: none;"
+        };
+    });
+
     rsx! {
         div { class: "hsv-panel-container",
-            width: "100px",
-            height: "100px",
+            style: hsv_panel_style,
+            div { class: "hsv-slider", p{"h"}, input { id: "hsv-h",type: "range", min: 0.0,
+                        value:"{hue}" ,
+                        max: 360.0,
+                        oninput: move |e|{
+                            if let Ok(parsed) = e.value().parse::<f64>() {
+                                hue.set(parsed);
+                            }},
+                    }},
+            div { class: "hsv-slider", p{"s"}, input { id: "hsv-s",type: "range" ,min: 0.0,
+                        value:"{sat}" ,
+                        max: 1.0,
+                        oninput: move |e|{
+                            if let Ok(parsed) = e.value().parse::<f64>() {
+                                sat.set(parsed);
+                            }},
+                    }},
+            div { class: "hsv-slider", p{"v"}, input { id: "hsv-v",type: "range" ,min: 0.0,
+                        value:"{val}" ,
+                        max: 1.0,
+                        oninput: move |e|{
+                            if let Ok(parsed) = e.value().parse::<f64>() {
+                                val.set(parsed);
+                            }},}},
         }
     }
 }
@@ -25,12 +66,13 @@ pub fn SideBar() -> Element {
     } else {
         "display: none;"
     };
+    let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
             button { class: "btn",
                 onclick: move |_| {
-                    
+                    hsv_is_visible.set(!hsv_is_visible());
                 },
                 div { class: "button-contents",
                     div { class: "button-svg-container",
