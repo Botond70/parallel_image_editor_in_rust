@@ -15,7 +15,7 @@ const MAIN_CSS: Asset = asset!("/assets/main.css");
 pub fn App() -> Element {
     let visibility = use_signal(|| true);
     let img_scale = use_signal(|| 100);
-    let IMG_SCALE_LIMITS: Signal<(i64, i64)> = use_signal(|| (20, 700));
+    let IMG_SCALE_LIMITS: Signal<(i64, i64)> = use_signal(|| (20, 3000));
     let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
     let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
     let image_index = use_signal(|| 0 as usize);

@@ -11,16 +11,16 @@ pub fn MenuBar() -> Element {
 
     rsx! {
         div { class: "menubar-container",
-                div { class: "dropdown-button-container",
-                    button { class: "btn", "View" }
-                    div { class: "dropdown-content",
-                        button { onclick: toggle,
-                            class: "btn", "Toggle Sidebar" }
-                        button { class: "btn", "Click me!" }
-                        button { class: "btn", "Click me!" }
-                    }
+            div { class: "dropdown-button-container",
+                button { class: "btn", "View" }
+                div { class: "dropdown-content",
+                    button { onclick: toggle,
+                        class: "btn", "Toggle Sidebar" }
+                    button { class: "btn", "Click me!" }
+                    button { class: "btn", "Click me!" }
                 }
-                Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
             }
+            Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
         }
+    }
 }

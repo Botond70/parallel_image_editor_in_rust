@@ -61,16 +61,16 @@ fn GalleryHeader() -> Element {
 #[component]
 pub fn Gallery() -> Element {
     let img_vec_base64 = use_context::<ImageVec>().base64_vector;
-    let img_vec = use_context::<ImageVec>().vector.clone();
+    let img_vec = use_context::<ImageVec>().vector;
     let mut curr_index = use_context::<ImageVec>().curr_image_index;
     let grid_size = use_context::<GalleryState>().grid_size;
-    let img_vector = img_vec_base64().clone();
+    let img_vector = img_vec_base64();
 
     let (column_width, image_width, image_height) = match &*grid_size() {
-        "small" => (210, 180, 90),
-        "medium" => (390, 360, 180),
-        "large" => (510, 480, 270),
-        _ => (390, 360, 180)
+        "small" => (220, 180, 90),
+        "medium" => (400, 360, 180),
+        "large" => (520, 480, 270),
+        _ => (400, 360, 180)
     };
 
     console::log_1(&format!("Current index: {}", curr_index()).into());
@@ -97,7 +97,6 @@ pub fn Gallery() -> Element {
                                                 src: "{img_url}"
                                             }
                                         }
-                                        p { "{img_vec().get(index).unwrap().dimensions().0} x {img_vec().get(index).unwrap().dimensions().1}" }
                                     }
                                 }
                         )

@@ -3,6 +3,7 @@ use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
+use dioxus::html::g::scale;
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
@@ -136,14 +137,19 @@ pub fn ImageBoard() -> Element {
                     for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
                         match load_from_memory(&bytes) {
                             Ok(img) => {
-                                let mut png_bytes = Vec::new();
-                                if let Err(err) = img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png) {
+                                let max_width = 480;
+                                let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
+                                let rgb_img = resized.to_rgb8();
+                                let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
+                                let mut cursor = Cursor::new(Vec::new());
+                                if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
                                     println!("Error during formatting: {err:?}");
                                 }
 
-                                let base64_str = base64_engine.encode(&png_bytes);
+                                let jpg_bytes = cursor.into_inner();
+                                let base64_str = base64_engine.encode(&jpg_bytes);
 
-                                image_datas_base64.push_back(format!("data:image/png;base64, {}", base64_str));
+                                image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
                                 image_datas.push_back(img);
                             },
                             Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
@@ -156,7 +162,6 @@ pub fn ImageBoard() -> Element {
                     let mut img_vec_base64 = image_vector_base64();
                     img_vec_base64.append(&mut image_datas_base64);
                     image_vector_base64.set(img_vec_base64);
-                    console::log_1(&format!("New vec count: {}", image_data_q().len()).into());
                     wgpu_on.set(true);
                 });
             },
