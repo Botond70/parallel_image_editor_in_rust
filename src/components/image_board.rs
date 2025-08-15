@@ -97,7 +97,6 @@ pub fn ImageBoard() -> Element {
                 is_dragging.set(true);
                 start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
                 viewport_size.set(get_viewport_size());
-
             },
             onmouseleave: move |_| {
                 is_dragging.set(false);
