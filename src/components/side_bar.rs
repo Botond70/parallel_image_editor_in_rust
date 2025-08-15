@@ -128,6 +128,7 @@ pub fn HSVPanel() -> Element {
                         min: 0.0,
                         value:"{sat}",
                         max: 1.0,
+                        step: 0.001,
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<f32>() {
                                 sat.set(parsed);
@@ -143,6 +144,7 @@ pub fn HSVPanel() -> Element {
                         min: 0.0,
                         value:"{val}" ,
                         max: 1.0,
+                        step: 0.001,
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<f32>() {
                                 val.set(parsed);
