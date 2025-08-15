@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use crate::state::app_state::{HSVState, NextImage, SideBarVisibility};
 use dioxus::{html::geometry::euclid::Translation2D, prelude::*};
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{console, window, MouseEvent};
+use wasm_bindgen::{JsCast, prelude::*};
+use web_sys::{MouseEvent, console, window};
 
 const HSV_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='size-6'>
   <path stroke-linecap='round' stroke-linejoin='round' d='M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75' />
@@ -19,13 +21,64 @@ pub fn HSVPanel() -> Element {
     let mut start_position = use_signal(|| (0.0, 0.0));
     let mut translation = use_signal(|| (0.0, 0.0));
 
-    let mut hsv_panel_style = use_memo( move ||
+    let mut hsv_panel_style = use_memo(move || {
         if hsv_is_visible() {
-            format!("display: grid; transform: translate({}px, {}px);", translation().0, translation().1)
+            format!(
+                "display: grid; transform: translate({}px, {}px);",
+                translation().0,
+                translation().1
+            )
         } else {
             format!("display: none;")
         }
-    );
+    });
+
+    if hsv_is_visible() {
+        use_hook_with_cleanup(
+            move || {
+                let window = window().unwrap();
+
+                let drag = is_dragging.clone();
+                let move_closure = Rc::new(Closure::wrap(Box::new(move |event: MouseEvent| {
+                    if drag() {
+                        let (start_x, start_y) = start_position();
+                        let dx = event.client_x() as f64 - start_x;
+                        let dy = event.client_y() as f64 - start_y;
+                        start_position.set((event.client_x() as f64, event.client_y() as f64));
+                        let (tx, ty) = translation();
+                        translation.set((tx + dx, ty + dy));
+                    }
+                }) as Box<dyn FnMut(_)>));
+
+                window
+                    .add_event_listener_with_callback("mousemove", move_closure.as_ref().as_ref().unchecked_ref())
+                    .unwrap();
+
+                let mut drag = is_dragging.clone();
+                let up_closure = Rc::new(Closure::wrap(Box::new(move |_event: MouseEvent| {
+                    drag.set(false);
+                }) as Box<dyn FnMut(_)>));
+
+                window
+                    .add_event_listener_with_callback("mouseup", up_closure.as_ref().as_ref().unchecked_ref())
+                    .unwrap();
+
+                (move_closure, up_closure)
+            },
+            move |(move_closure, up_closure)| {
+                if let Some(window) = window() {
+                    window.remove_event_listener_with_callback(
+                        "mousemove",
+                        move_closure.as_ref().as_ref().unchecked_ref(),
+                    ).unwrap();
+                    window.remove_event_listener_with_callback(
+                        "mouseup",
+                        up_closure.as_ref().as_ref().unchecked_ref(),
+                    ).unwrap();
+                }
+            },
+        );
+    }
 
     rsx! {
         div { class: "hsv-panel-container",
@@ -34,31 +87,6 @@ pub fn HSVPanel() -> Element {
                 onmousedown: move |evt| {
                     is_dragging.set(true);
                     start_position.set((evt.client_coordinates().x, evt.client_coordinates().y));
-                    let window = window().unwrap();
-
-                    let mouse_move_cb = Closure::wrap(Box::new(move |event: MouseEvent| {
-                        if is_dragging() {
-                            let dx = event.client_x() as f64 - start_position().0;
-                            let dy = event.client_y() as f64 - start_position().1;
-                            start_position.set((event.client_x() as f64, event.client_y() as f64));
-                            let (tx, ty) = translation();
-                            translation.set((tx + dx, ty + dy));
-                        }
-                    }) as Box<dyn FnMut(_)>);
-                    window
-                        .add_event_listener_with_callback("mousemove", mouse_move_cb.as_ref().unchecked_ref())
-                        .unwrap();
-                    
-                    mouse_move_cb.forget();
-
-                    let mouse_up_cb = Closure::wrap(Box::new(move |_event: MouseEvent| {
-                        is_dragging.set(false);
-                    }) as Box<dyn FnMut(_)>);
-                    window
-                        .add_event_listener_with_callback("mouseup", mouse_up_cb.as_ref().unchecked_ref())
-                        .unwrap();
-
-                    mouse_up_cb.forget();
                 },
                 onmouseup: move |_| {
                     is_dragging.set(false);
