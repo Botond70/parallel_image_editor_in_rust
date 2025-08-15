@@ -1,4 +1,4 @@
-use crate::state::app_state::{ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
@@ -33,6 +33,10 @@ pub fn ImageBoard() -> Element {
     let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
     let mut ready_signal = use_signal(|| false);
+    let mut hsv_signal = use_signal(|| false);
+    let hue = use_context::<HSVState>().hue;
+    let sat = use_context::<HSVState>().saturation;
+    let val = use_context::<HSVState>().value;
 
     #[allow(unused)]
     use_effect(move || {
@@ -61,17 +65,10 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&"Drew first image".into());
 
                 use_effect(move || {
-                    if (!ready_signal()) {
-                        draw_signal.set(false);
-                    } else {
-                        draw_signal.set(true);
-                    }
-                });
-
-                use_effect(move || {
                     if *draw_signal.read() {
                         wgpustate.load_and_draw();
                         ready_signal.set(false);
+                        hsv_signal.set(false);
                     } else if curr_index() != wgpustate.img_index as usize {
                         wgpustate.set_index(curr_index() as u32);
                         ready_signal.set(true);
@@ -79,6 +76,14 @@ pub fn ImageBoard() -> Element {
                 });
             });
         };
+    });
+
+    use_effect(move || {
+        if (!ready_signal()) && wgpu_on() {
+            draw_signal.set(false);
+        } else {
+            draw_signal.set(true);
+        }
     });
 
     rsx! {
@@ -176,7 +181,8 @@ pub fn ImageBoard() -> Element {
                             width: format!("{}px",image_size().0),
                             height: format!("{}px",image_size().1),
                             style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
-                        }
+                        },
+                        button { onclick: move |_| {ready_signal.set(true)}, "Force reload img"},
                     }
                 )
                 },

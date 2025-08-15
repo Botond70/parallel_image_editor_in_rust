@@ -51,7 +51,10 @@ pub fn HSVPanel() -> Element {
                 }) as Box<dyn FnMut(_)>));
 
                 window
-                    .add_event_listener_with_callback("mousemove", move_closure.as_ref().as_ref().unchecked_ref())
+                    .add_event_listener_with_callback(
+                        "mousemove",
+                        move_closure.as_ref().as_ref().unchecked_ref(),
+                    )
                     .unwrap();
 
                 let mut drag = is_dragging.clone();
@@ -60,21 +63,28 @@ pub fn HSVPanel() -> Element {
                 }) as Box<dyn FnMut(_)>));
 
                 window
-                    .add_event_listener_with_callback("mouseup", up_closure.as_ref().as_ref().unchecked_ref())
+                    .add_event_listener_with_callback(
+                        "mouseup",
+                        up_closure.as_ref().as_ref().unchecked_ref(),
+                    )
                     .unwrap();
 
                 (move_closure, up_closure)
             },
             move |(move_closure, up_closure)| {
                 if let Some(window) = window() {
-                    window.remove_event_listener_with_callback(
-                        "mousemove",
-                        move_closure.as_ref().as_ref().unchecked_ref(),
-                    ).unwrap();
-                    window.remove_event_listener_with_callback(
-                        "mouseup",
-                        up_closure.as_ref().as_ref().unchecked_ref(),
-                    ).unwrap();
+                    window
+                        .remove_event_listener_with_callback(
+                            "mousemove",
+                            move_closure.as_ref().as_ref().unchecked_ref(),
+                        )
+                        .unwrap();
+                    window
+                        .remove_event_listener_with_callback(
+                            "mouseup",
+                            up_closure.as_ref().as_ref().unchecked_ref(),
+                        )
+                        .unwrap();
                 }
             },
         );
@@ -101,9 +111,10 @@ pub fn HSVPanel() -> Element {
                         type: "range",
                         min: 0.0,
                         value:"{hue}" ,
-                        max: 360.0,
+                        max: 1.0,
+                        step: 0.001,
                         oninput: move |e|{
-                            if let Ok(parsed) = e.value().parse::<f64>() {
+                            if let Ok(parsed) = e.value().parse::<f32>() {
                                 hue.set(parsed);
                             }
                         },
@@ -118,7 +129,7 @@ pub fn HSVPanel() -> Element {
                         value:"{sat}",
                         max: 1.0,
                         oninput: move |e| {
-                            if let Ok(parsed) = e.value().parse::<f64>() {
+                            if let Ok(parsed) = e.value().parse::<f32>() {
                                 sat.set(parsed);
                             }
                         },
@@ -133,7 +144,7 @@ pub fn HSVPanel() -> Element {
                         value:"{val}" ,
                         max: 1.0,
                         oninput: move |e| {
-                            if let Ok(parsed) = e.value().parse::<f64>() {
+                            if let Ok(parsed) = e.value().parse::<f32>() {
                                 val.set(parsed);
                             }
                         },

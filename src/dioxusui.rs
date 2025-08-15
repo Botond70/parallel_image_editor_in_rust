@@ -33,9 +33,9 @@ pub fn App() -> Element {
     let dropdown_visible = use_signal(|| false);
 
     let hsv_visible = use_signal(|| false);
-    let hue = use_signal(|| 0 as f64);
-    let saturation = use_signal(|| 0 as f64);
-    let value = use_signal(|| 0 as f64);
+    let hue = use_signal(|| 0 as f32);
+    let saturation = use_signal(|| 0 as f32);
+    let value = use_signal(|| 1 as f32);
 
     use_context_provider(|| GalleryState {
         grid_size,

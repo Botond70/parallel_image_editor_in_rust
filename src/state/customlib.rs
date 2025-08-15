@@ -1,5 +1,8 @@
+use crate::state::app_state::HSVState;
+use dioxus::hooks::use_context;
 use dioxus::html::input;
 use image::DynamicImage;
+use std::alloc::GlobalAlloc;
 use std::collections::VecDeque;
 use std::str::Bytes;
 use std::sync::mpsc::{self, RecvError};
@@ -8,6 +11,22 @@ use wasm_bindgen::JsCast;
 use web_sys::*;
 use wgpu::util::DeviceExt;
 use wgpu::*;
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct Globals {
+    pub hsv: [f32; 3], //12bytes data
+    pub _pad: f32,     //4bytes padding for alignment
+}
+
+impl Globals {
+    pub fn new(h: f32, s: f32, v: f32) -> Self {
+        Self {
+            hsv: [h, s, v],
+            _pad: 0.0,
+        }
+    }
+}
 pub struct State {
     tx: Sender<DynamicImage>,
     rx: Receiver<DynamicImage>,
@@ -144,9 +163,34 @@ impl State {
                                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                                 count: None,
                             },
+                            wgpu::BindGroupLayoutEntry {
+                                binding: 2,
+                                visibility: wgpu::ShaderStages::FRAGMENT,
+                                ty: wgpu::BindingType::Buffer {
+                                    ty: wgpu::BufferBindingType::Uniform,
+                                    has_dynamic_offset: false,
+                                    min_binding_size: None,
+                                },
+                                count: None,
+                            },
                         ],
                         label: Some("texture_bind_group_layout"),
                     });
+
+            let hue = use_context::<HSVState>().hue;
+            let sat = use_context::<HSVState>().saturation;
+            let val = use_context::<HSVState>().value;
+
+            let globals = Globals::new(hue(), sat(), val());
+
+            let globals_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("globals buffer"),
+                        contents: bytemuck::bytes_of(&globals),
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
+
             self.diffuse_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &texture_bind_group_layout,
                 entries: &[
@@ -157,6 +201,10 @@ impl State {
                     wgpu::BindGroupEntry {
                         binding: 1,
                         resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: globals_buffer.as_entire_binding(),
                     },
                 ],
                 label: Some("diffuse_bind_group"),
@@ -381,9 +429,31 @@ impl State {
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
                 ],
                 label: Some("texture_bind_group_layout"),
             });
+
+        let hue = use_context::<HSVState>().hue;
+        let sat = use_context::<HSVState>().saturation;
+        let val = use_context::<HSVState>().value;
+
+        let globals = Globals::new(hue(), sat(), val());
+
+        let globals_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("globals buffer"),
+            contents: bytemuck::bytes_of(&globals),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
         let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
@@ -395,6 +465,10 @@ impl State {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: globals_buffer.as_entire_binding(),
                 },
             ],
             label: Some("diffuse_bind_group"),
@@ -434,7 +508,7 @@ impl State {
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
