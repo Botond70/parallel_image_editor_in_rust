@@ -14,7 +14,7 @@ const HSV_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none
 pub fn HSVPanel() -> Element {
     let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
     let mut hue = use_context::<HSVState>().hue;
-    let mut hvalue = hue();
+    let mut hue_slider_value = use_signal(|| 0.0);
     let mut sat = use_context::<HSVState>().saturation;
     let mut val = use_context::<HSVState>().value;
     let mut is_dragging = use_signal(|| false);
@@ -109,13 +109,14 @@ pub fn HSVPanel() -> Element {
                     input {
                         id: "hsv-h",
                         type: "range",
-                        min: 0.0,
-                        value:"{hue}" ,
+                        min: -1.0,
+                        value:"{hue_slider_value}" ,
                         max: 1.0,
                         step: 0.001,
                         oninput: move |e|{
                             if let Ok(parsed) = e.value().parse::<f32>() {
-                                hue.set(parsed);
+                                hue_slider_value.set(parsed);
+                                hue.set(parsed * std::f32::consts::PI);
                             }
                         },
                     }
