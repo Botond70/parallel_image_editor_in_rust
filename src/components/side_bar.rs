@@ -104,10 +104,10 @@ pub fn HSVPanel() -> Element {
                 p { "HSV" },
             },
             div { class: "panel-content",
-                div { class: "hsv-slider",
+                div { class: "panel-slider-container",
                     p{ "HUE" },
                     input {
-                        id: "hsv-h",
+                        class: "panel-slider",
                         type: "range",
                         min: -1.0,
                         value:"{hue_slider_value}" ,
@@ -120,11 +120,12 @@ pub fn HSVPanel() -> Element {
                             }
                         },
                     }
+                    p { class: "slider-progress", "{hue_slider_value}" }
                 },
-                div { class: "hsv-slider",
+                div { class: "panel-slider-container",
                     p{ "SAT" },
                     input {
-                        id: "hsv-s",
+                        class: "panel-slider",
                         type: "range",
                         min: 0.0,
                         value:"{sat}",
@@ -137,10 +138,10 @@ pub fn HSVPanel() -> Element {
                         },
                     }
                 },
-                div { class: "hsv-slider",
+                div { class: "panel-slider-container",
                     p{ "VAL" },
                     input {
-                        id: "hsv-v",
+                        class: "panel-slider",
                         type: "range",
                         min: 0.0,
                         value:"{val}" ,

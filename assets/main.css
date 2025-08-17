@@ -80,10 +80,49 @@ body,
 .panel-content {
     padding: 10px;
     display: grid;
+    grid-template-columns: 1fr;
 }
 
-.hsv-slider {
+.panel-slider-container {
     display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.panel-slider-container .slider-progress {
+    width: 50px;
+}
+
+input {
+    --color: white; /* active color of slider */
+    --line-thickness: 1px;
+    --thumb-size: 15px;
+
+    width: 360px;
+    height: var(--thumb-size);
+    -webkit-appearance :none;
+    -moz-appearance :none;
+    appearance :none;
+    background: none;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+input:active {
+    --fill: var(--thumb-size);
+}
+
+input::-webkit-slider-thumb {
+    height: var(--thumb-size);
+    border-radius: 5px;
+    aspect-ratio: 1;
+    box-shadow: 0 0 0 var(--fill, var(--line-thickness)) inset var(--color);
+    border-image-source: linear-gradient(90deg, white 50%, gray 0);
+    border-image-slice: 0 1;
+    border-image-width: calc(50% - var(--line-thickness)) 100vw;
+    border-image-outset: 100vw;
+    appearance: none;
+    transition: 0.2s;
 }
 
 .menubar-container {
@@ -216,57 +255,11 @@ body,
     position: absolute;
     white-space: nowrap;
     right: 1.5rem;
-    width: auto;
-}
-
-.zoom-slider-container label {
-    position: relative;
-    left: 0;
-    margin-left: 0.25rem;
-    width: 25px;
-    white-space: nowrap;
+    width: 200px;
 }
 
 .zoom-slider {
-    appearance: none;
-    width: 100%;
-    height: 3px;
-    border-radius: 2px;
-    outline: none;
-    background: linear-gradient(to right, white 14%, white 14%, gray 14%);
-}
-
-.zoom-slider::-webkit-slider-runnable-track,
-.zoom-slider::-moz-range-track {
-    background: transparent;
-    height: 3px;
-    border-radius: 2px;
-}
-
-.zoom-slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 15px;
-    height: 15px;
-    background: black;
-    border: 3px solid white;
-    border-radius: 50%;
-    cursor: pointer;
-    margin-top: -6px;
-}
-
-.zoom-slider::-moz-range-progress {
-    height: 3px;
-    background-color: white;
-}
-
-.zoom-slider::-moz-range-thumb {
-    width: 15px;
-    height: 15px;
-    background: black;
-    border: 3px solid white;
-    border-radius: 50%;
-    cursor: pointer;
-    margin-top: -6px;
+    width: 140px;
 }
 
 .gallery-page {
