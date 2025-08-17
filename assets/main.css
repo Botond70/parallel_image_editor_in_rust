@@ -112,6 +112,7 @@ input:active {
     --fill: var(--thumb-size);
 }
 
+/* For chromium */
 input::-webkit-slider-thumb {
     height: var(--thumb-size);
     border-radius: 5px;
@@ -121,6 +122,23 @@ input::-webkit-slider-thumb {
     border-image-slice: 0 1;
     border-image-width: calc(50% - var(--line-thickness)) 100vw;
     border-image-outset: 100vw;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: 0.2s;
+}
+
+/* Mozilla support */
+input::-moz-range-thumb {
+    height: var(--thumb-size);
+    width: var(--thumb-size);
+    border-radius: 5px;
+    background: none;
+    box-shadow: 0 0 0 var(--fill, var(--line-thickness)) inset var(--color);
+    border-image-source: linear-gradient(90deg, white 50%, gray 0);
+    border-image-slice: 0 1;
+    border-image-width: calc(50% - var(--line-thickness)) 100vw;
+    border-image-outset: 100vw;
+    -moz-appearance: none;
     appearance: none;
     transition: 0.2s;
 }
