@@ -11,6 +11,7 @@ use wasm_bindgen::JsCast;
 use web_sys::*;
 use wgpu::util::DeviceExt;
 use wgpu::*;
+use image::GenericImageView;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -43,28 +44,18 @@ pub struct State {
     pub index_buffer: wgpu::Buffer,
     pub num_indices: u32,
     pub diffuse_bind_group: wgpu::BindGroup,
+    pub globals_buffer : wgpu::Buffer,
 }
 
 impl State {
-    pub fn draw_next_img(&mut self) {
-        self.next();
-        self.load_and_draw();
-    }
 
-    pub fn load_and_draw(&mut self) {
+    pub fn load_image_to_gpu(&mut self) {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
-        use image::GenericImageView;
-        let mut config = self.config.clone();
-        config.width = diffuse_image.dimensions().0;
-        config.height = diffuse_image.dimensions().1;
-        self.config = config.clone();
         let dimensions = diffuse_image.dimensions();
         let texture_size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
-            // All textures are stored as 3D, we represent our 2D texture
-            // by setting depth to 1.
             depth_or_array_layers: 1,
         };
         let diffuse_texture = self.device.create_texture(&wgpu::TextureDescriptor {
@@ -72,12 +63,9 @@ impl State {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-
-            format: config.clone().format,
-
+            format: self.config.format,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("diffuse_texture"),
-
             view_formats: &[],
         });
 
@@ -97,29 +85,75 @@ impl State {
             texture_size,
         );
 
-        console::log_1(&"Started drawing the frame".into());
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Rendering Encoder"),
-            });
-        let frame = self.surface.get_current_texture().unwrap();
+        let diffuse_texture_view =
+            diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // reuse sampler, layout
+        self.diffuse_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.render_pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(
+                        &self.device.create_sampler(&wgpu::SamplerDescriptor::default()),
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.globals_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("updated_diffuse_bind_group"),
+        });
+    }
+
+    pub fn draw(&mut self, update_texture: bool) {
+        if update_texture {
+            self.load_image_to_gpu(); // only use this when image is changed
+        }
+
+        // read hsv values
+        let hue = use_context::<HSVState>().hue;
+        let sat = use_context::<HSVState>().saturation;
+        let val = use_context::<HSVState>().value;
+
+        let globals = Globals::new(hue(), sat(), val());
+        self.queue
+            .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
+
+        // start rendering the new frame
+        let frame = match self.surface.get_current_texture() {
+            Ok(frame) => frame,
+            Err(err) => {
+                console::log_1(&format!("Surface error: {:?}", err).into());
+                return;
+            }
+        };
 
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Rendering"),
+                label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     depth_slice: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -129,98 +163,16 @@ impl State {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-            let diffuse_texture_view =
-                diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-            let diffuse_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor {
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                address_mode_w: wgpu::AddressMode::ClampToEdge,
-                mag_filter: wgpu::FilterMode::Linear,
-                min_filter: wgpu::FilterMode::Nearest,
-                mipmap_filter: wgpu::FilterMode::Nearest,
-                ..Default::default()
-            });
-            let texture_bind_group_layout =
-                self.device
-                    .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                        entries: &[
-                            wgpu::BindGroupLayoutEntry {
-                                binding: 0,
-                                visibility: wgpu::ShaderStages::FRAGMENT,
-                                ty: wgpu::BindingType::Texture {
-                                    multisampled: false,
-                                    view_dimension: wgpu::TextureViewDimension::D2,
-                                    sample_type: wgpu::TextureSampleType::Float {
-                                        filterable: true,
-                                    },
-                                },
-                                count: None,
-                            },
-                            wgpu::BindGroupLayoutEntry {
-                                binding: 1,
-                                visibility: wgpu::ShaderStages::FRAGMENT,
-                                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                                count: None,
-                            },
-                            wgpu::BindGroupLayoutEntry {
-                                binding: 2,
-                                visibility: wgpu::ShaderStages::FRAGMENT,
-                                ty: wgpu::BindingType::Buffer {
-                                    ty: wgpu::BufferBindingType::Uniform,
-                                    has_dynamic_offset: false,
-                                    min_binding_size: None,
-                                },
-                                count: None,
-                            },
-                        ],
-                        label: Some("texture_bind_group_layout"),
-                    });
-
-            let hue = use_context::<HSVState>().hue;
-            let sat = use_context::<HSVState>().saturation;
-            let val = use_context::<HSVState>().value;
-
-            let globals = Globals::new(hue(), sat(), val());
-
-            let globals_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("globals buffer"),
-                        contents: bytemuck::bytes_of(&globals),
-                        usage: wgpu::BufferUsages::UNIFORM,
-                    });
-
-            self.diffuse_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &texture_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: globals_buffer.as_entire_binding(),
-                    },
-                ],
-                label: Some("diffuse_bind_group"),
-            });
-
-            render_pass.set_pipeline(&self.render_pipeline); // 2.
+            render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
-            drop(render_pass);
         }
+
         self.queue.submit(Some(encoder.finish()));
         frame.present();
-        console::log_1(&"Frame presented".into());
     }
 
     pub fn next(&mut self) {
@@ -338,11 +290,13 @@ impl State {
             .await
             .unwrap();
 
+        // keep a list of preferred formats here
         let formats = surface.get_capabilities(&adapter).formats;
         let preferred_formats =
             Vec::<TextureFormat>::from([TextureFormat::Rgba8Unorm, TextureFormat::Rgba8UnormSrgb]);
         let mut pref_format = surface.get_capabilities(&adapter).formats[0];
 
+        // select our preferred format from the supported ones
         for cformat in preferred_formats.iter() {
             if formats.contains(cformat) {
                 pref_format = *cformat;
@@ -353,6 +307,7 @@ impl State {
         console::log_1(
             &format!("Formats: {:?}", surface.get_capabilities(&adapter).formats).into(),
         );
+        
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: pref_format,
@@ -550,6 +505,7 @@ impl State {
             index_buffer: index_buffer,
             num_indices: num_indices,
             diffuse_bind_group: diffuse_bind_group,
+            globals_buffer: globals_buffer.clone(),
         }
     }
 }

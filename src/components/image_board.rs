@@ -66,6 +66,7 @@ pub fn ImageBoard() -> Element {
                 }
                 state.borrow_mut().receive().await;
                 ready_signal.set(true);
+                state.borrow_mut().draw(true);
                 console::log_1(&"Drew first image".into());
             });
         };
@@ -78,7 +79,7 @@ pub fn ImageBoard() -> Element {
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
-                wgpu_state.load_and_draw();
+                wgpu_state.draw(false);
                 console::log_1(&"Triggered re-render from HSV change".into());
             }
         }
