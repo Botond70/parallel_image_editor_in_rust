@@ -7,11 +7,11 @@ use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::html::g::scale;
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::io::Cursor;
 use std::rc::Rc;
 use web_sys::{console, window};
-use std::cell::RefCell;
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -75,6 +75,8 @@ pub fn ImageBoard() -> Element {
     use_effect(move || {
         // track hue
         let hue = hue();
+        let saturation = sat();
+        let value = val();
 
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {

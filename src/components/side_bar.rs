@@ -16,7 +16,9 @@ pub fn HSVPanel() -> Element {
     let mut hue = use_context::<HSVState>().hue;
     let mut hue_slider_value = use_signal(|| 0.0);
     let mut sat = use_context::<HSVState>().saturation;
+    let mut sat_slider_value = use_signal(|| 0.0);
     let mut val = use_context::<HSVState>().value;
+    let mut val_slider_value = use_signal(|| 0.0);
     let mut is_dragging = use_signal(|| false);
     let mut start_position = use_signal(|| (0.0, 0.0));
     let mut translation = use_signal(|| (0.0, 0.0));
@@ -127,32 +129,36 @@ pub fn HSVPanel() -> Element {
                     input {
                         class: "panel-slider",
                         type: "range",
-                        min: 0.0,
-                        value:"{sat}",
+                        min: -1.0,
+                        value:"{sat_slider_value}",
                         max: 1.0,
                         step: 0.001,
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<f32>() {
+                                sat_slider_value.set(parsed);
                                 sat.set(parsed);
                             }
                         },
                     }
+                    p { class: "slider-progress", "{sat_slider_value}" }
                 },
                 div { class: "panel-slider-container",
                     p{ "VAL" },
                     input {
                         class: "panel-slider",
                         type: "range",
-                        min: 0.0,
-                        value:"{val}" ,
-                        max: 1.0,
+                        min: -1.0,
+                        value:"{val_slider_value}" ,
+                        max: 10.0,
                         step: 0.001,
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<f32>() {
+                                val_slider_value.set(parsed);
                                 val.set(parsed);
                             }
                         },
                     }
+                    p { class: "slider-progress", "{val_slider_value}" }
                 },
             }
         }
