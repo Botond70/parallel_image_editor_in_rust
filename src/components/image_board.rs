@@ -1,4 +1,5 @@
 use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::customlib::State;
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
@@ -8,7 +9,9 @@ use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
 use std::io::Cursor;
+use std::rc::Rc;
 use web_sys::{console, window};
+use std::cell::RefCell;
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -33,10 +36,10 @@ pub fn ImageBoard() -> Element {
     let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
     let mut ready_signal = use_signal(|| false);
-    let mut hsv_signal = use_signal(|| false);
     let hue = use_context::<HSVState>().hue;
     let sat = use_context::<HSVState>().saturation;
     let val = use_context::<HSVState>().value;
+    let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
 
     #[allow(unused)]
     use_effect(move || {
@@ -46,43 +49,38 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&format!("Images : {}", image_datas.clone().len()).into());
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
                 let first_img = image_datas.get(curr_index()).unwrap();
-                let mut wgpustate = start_wgpu(first_img).await;
-                wgpustate.set_index(curr_index() as u32);
+                let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
+                state.borrow_mut().set_index(curr_index() as u32);
+                wgpu_state_signal.set(Some(state.clone()));
                 image_size.set((
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
                 ));
                 console::log_1(&"Started WGPU".into());
                 console::log_1(&format!("Images: {}", image_datas.len()).into());
-                let mut wgpusender = wgpustate.sender();
+                let mut wgpusender = state.borrow().sender();
                 for (i, img) in image_datas.iter().enumerate() {
                     if i > 0 {
                         wgpusender.send(img.clone());
                     }
                 }
-                wgpustate.receive().await;
+                state.borrow_mut().receive().await;
                 ready_signal.set(true);
                 console::log_1(&"Drew first image".into());
-
-                use_effect(move || {
-                    if *draw_signal.read() {
-                        wgpustate.load_and_draw();
-                        ready_signal.set(false);
-                        hsv_signal.set(false);
-                    } else if curr_index() != wgpustate.img_index as usize {
-                        wgpustate.set_index(curr_index() as u32);
-                        ready_signal.set(true);
-                    }
-                });
             });
         };
     });
 
     use_effect(move || {
-        if (!ready_signal()) && wgpu_on() {
-            draw_signal.set(false);
-        } else {
-            draw_signal.set(true);
+        // track hue
+        let hue = hue();
+
+        if wgpu_on() && ready_signal() {
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                wgpu_state.load_and_draw();
+                console::log_1(&"Triggered re-render from HSV change".into());
+            }
         }
     });
 
@@ -182,7 +180,6 @@ pub fn ImageBoard() -> Element {
                             height: format!("{}px",image_size().1),
                             style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
                         },
-                        button { onclick: move |_| {ready_signal.set(true)}, "Force reload img"},
                     }
                 )
                 },
