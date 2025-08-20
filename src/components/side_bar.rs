@@ -180,6 +180,7 @@ pub fn SideBar() -> Element {
     } else {
         "display: none;"
     };
+
     let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
 
     rsx! {
@@ -188,20 +189,16 @@ pub fn SideBar() -> Element {
                 onclick: move |_| {
                     hsv_is_visible.set(!hsv_is_visible());
                 },
-                div { class: "button-contents",
-                    div { class: "button-svg-container",
-                        dangerous_inner_html: HSV_BUTTON_SVG
-                    }
-                    p { class: "button-text", "HSV" }
+                span { class: "button-svg-container",
+                    dangerous_inner_html: HSV_BUTTON_SVG
                 }
+                span { class: "button-text", "HSV" }
             }
             button { class: "btn",
-                div { class: "button-contents",
-                    div { class: "button-svg-container",
-                        dangerous_inner_html: CROP_BUTTON_SVG
-                    }
-                    p { class: "button-text", "Crop" }
+                span { class: "button-svg-container",
+                    dangerous_inner_html: CROP_BUTTON_SVG
                 }
+                span { class: "button-text", "Crop" }
             }
             button { class: "btn" , "Click me!"}
             button { class: "btn" , "Click me!"}
