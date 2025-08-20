@@ -12,6 +12,14 @@ pub fn MenuBar() -> Element {
     rsx! {
         div { class: "menubar-container",
             div { class: "dropdown-button-container",
+                button {class: "btn", "File" }
+                div { class: "dropdown-content",
+                    button { class: "btn", "Load" }
+                    button { class: "btn", "Save" }
+                    button { class: "btn", "Save as" }
+                }
+            }
+            div { class: "dropdown-button-container",
                 button { class: "btn", "View" }
                 div { class: "dropdown-content",
                     button { onclick: toggle,
