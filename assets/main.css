@@ -2,8 +2,17 @@
 
 html,
 body {
+    --background-main: #212529;
+    --background-bar: #343A40;
+    --panel-background: #343A40;
+    --panel-header: #000010;
+    --border-color: #495057;
+    --button-default: #d0d7dd;
+    --button-background-hover: #0096C7;
+    --filter-default: brightness(0) saturate(100%) invert(95%) sepia(6%) saturate(238%) hue-rotate(168deg) brightness(91%) contrast(90%);
+
     z-index: 0;
-    background-color: #1E1E1E;
+    background-color: var(--background-main);
     color: white;
     font-family: 'Figtree', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     height: 100%;
@@ -27,8 +36,8 @@ body,
     align-items: center;
     max-width: 40vw;
     height: 100vh;
-    background-color: #353535;
-    border-right: 2px solid #505050;
+    background-color: var(--background-bar);
+    border-right: 2px solid var(--border-color);
 }
 
 .hsv-panel-container {
@@ -36,11 +45,11 @@ body,
     z-index: 500;
     top: 100;
     left: 100;
-    border: 1px solid grey;
+    border: 1px solid var(--border-color);
     border-radius: 15px;
     border-top-left-radius: 0.5em;
     border-top-right-radius: 0.5em;
-    background-color: #353535;
+    background-color: var(--panel-background);
     grid-template-rows: 30px auto;
     min-width: 100px;
     min-height: 100px;
@@ -57,8 +66,8 @@ body,
     border-top-left-radius: 0.5em;
     border-top-right-radius: 0.5em;
     overflow: hidden;
-    background-color: #1E1E1E;
-    border-bottom: 2px solid #505050;
+    background-color: var(--panel-header);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .panel-content {
@@ -134,8 +143,8 @@ input::-moz-range-thumb {
     align-items: center;
     width: 100vw;
     height: 30px;
-    background-color: #353535;
-    border-bottom: 2px solid #505050;
+    background-color: var(--background-bar);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .dropdown-button-container {
@@ -149,14 +158,18 @@ input::-moz-range-thumb {
     z-index: 100;
     display: none;
     position: absolute;
-    background-color: #353535;
-    border: 1px solid #505050;
+    background-color: var(--background-bar);
+    border: 1px solid var(--border-color);
     border-radius: 3px;
     row-gap: 2px;
 }
 
 .dropdown-content .btn {
     width: 100%;
+}
+
+.dropdown-content .btn:hover {
+    background-color: var(--button-background-hover);
 }
 
 .btn {
@@ -166,16 +179,20 @@ input::-moz-range-thumb {
     white-space: nowrap;
     background: none;
     border: none;
-    color: #F5F5F5;
+    color: var(--button-default);
     border-radius: 5px;
     padding: 3px;
-    transition: background-color 0.15s ease-in-out;
+    transition: background-color 0.15s ease-in-out,
+        box-shadow 0.15s ease-in-out,
+        color 0.15s ease-in-out;
+    box-shadow: none;
 }
 
 .btn:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.02);
     color: white;
     cursor: pointer;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
 }
 
 .button-svg-container {
@@ -183,11 +200,13 @@ input::-moz-range-thumb {
     height: 30px;
     margin-bottom: 5px;
     padding: 2px;
-    filter: invert(91%) sepia(4%) saturate(9%) hue-rotate(351deg) brightness(80%) contrast(79%);
+    filter: var(--filter-default);
+    transition: filter 0.15s ease-in-out;
 }
 
 .button-text {
-    color: #AFAFAF;
+    color: var(--button-default);
+    transition: color 0.15s ease-in-out;
 }
 
 .btn:hover .button-text {
@@ -249,8 +268,8 @@ input::-moz-range-thumb {
     display: flex;
     position: absolute;
     z-index: 5;
-    background-color: #353535;
-    border-top: 2px solid #505050;
+    background-color: var(--background-bar);
+    border-top: 2px solid var(--border-color);
     bottom: 0;
     height: 5vh;
     width: 100vw;
@@ -266,7 +285,7 @@ input::-moz-range-thumb {
 
 .footer-main>div+div::after {
     content: "";
-    background: gray;
+    background: var(--border-color);
     position: absolute;
     height: 50%;
     bottom: 25%;
@@ -291,7 +310,7 @@ input::-moz-range-thumb {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #1E1E1E;
+    background-color: var(--background-main);
 }
 
 .gallery-page-header {
@@ -302,8 +321,8 @@ input::-moz-range-thumb {
     width: 100%;
     position: fixed;
     height: 55px;
-    background-color: #353535;
-    border-bottom: 2px solid #505050;
+    background-color: var(--background-bar);
+    border-bottom: 2px solid var(--border-color);
     top: 0;
 }
 
@@ -381,7 +400,7 @@ input::-moz-range-thumb {
 }
 
 .back-button {
-    filter: invert(100%) sepia(1%) saturate(1109%) hue-rotate(197deg) brightness(115%) contrast(100%);
+    filter: var(--filter-default);
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
@@ -442,7 +461,7 @@ input::-moz-range-thumb {
 }
 
 .gallery-page .dropdown-content {
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border-color);
 }
 
 .gallery-page .grid-size-select-container .dropdown-content {
