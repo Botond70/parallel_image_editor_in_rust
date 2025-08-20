@@ -2,6 +2,7 @@ use crate::state::app_state::HSVState;
 use dioxus::hooks::use_context;
 use dioxus::html::input;
 use image::DynamicImage;
+use image::GenericImageView;
 use std::alloc::GlobalAlloc;
 use std::collections::VecDeque;
 use std::str::Bytes;
@@ -11,7 +12,6 @@ use wasm_bindgen::JsCast;
 use web_sys::*;
 use wgpu::util::DeviceExt;
 use wgpu::*;
-use image::GenericImageView;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -44,10 +44,72 @@ pub struct State {
     pub index_buffer: wgpu::Buffer,
     pub num_indices: u32,
     pub diffuse_bind_group: wgpu::BindGroup,
-    pub globals_buffer : wgpu::Buffer,
+    pub globals_buffer: wgpu::Buffer,
 }
 
 impl State {
+    pub async fn save_to_file(&mut self, filepath: String) {
+        let u32_size = std::mem::size_of::<u32>() as u32;
+        let frame = &self.surface.get_current_texture().unwrap().texture;
+        let texture_dims = self
+            .img_vec
+            .get(self.img_index as usize)
+            .unwrap()
+            .dimensions();
+        let texture_size = texture_dims.0 * texture_dims.1;
+
+        let output_buffer_size = (u32_size * texture_size) as wgpu::BufferAddress;
+        let output_buffer_desc = wgpu::BufferDescriptor {
+            size: output_buffer_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            label: None,
+            mapped_at_creation: false,
+        };
+        let output_buffer = self.device.create_buffer(&output_buffer_desc);
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                aspect: wgpu::TextureAspect::All,
+                texture: &frame,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &output_buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(u32_size * texture_size),
+                    rows_per_image: Some(texture_size),
+                },
+            },
+            frame.size(),
+        );
+        {
+            let buffer_slice = output_buffer.slice(..);
+
+            let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
+            buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+                tx.send(result).unwrap();
+            });
+            match self.device.poll(wgpu::PollType::Wait) {
+                Err(_) => console::log_1(&"Device error".into()),
+                Ok(_) => return,
+            };
+            rx.receive().await.unwrap().unwrap();
+
+            let data = buffer_slice.get_mapped_range();
+
+            use image::{ImageBuffer, Rgba};
+            let buffer =
+                ImageBuffer::<Rgba<u8>, _>::from_raw(texture_size, texture_size, data).unwrap();
+            buffer.save(filepath).unwrap();
+        };
+        output_buffer.unmap();
+    }
 
     pub fn load_image_to_gpu(&mut self) {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
@@ -99,7 +161,9 @@ impl State {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(
-                        &self.device.create_sampler(&wgpu::SamplerDescriptor::default()),
+                        &self
+                            .device
+                            .create_sampler(&wgpu::SamplerDescriptor::default()),
                     ),
                 },
                 wgpu::BindGroupEntry {
@@ -138,9 +202,11 @@ impl State {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -307,7 +373,7 @@ impl State {
         console::log_1(
             &format!("Formats: {:?}", surface.get_capabilities(&adapter).formats).into(),
         );
-        
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: pref_format,

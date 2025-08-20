@@ -36,15 +36,18 @@ pub fn ImageBoard() -> Element {
     let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
     let mut ready_signal = use_signal(|| false);
-    let hue = use_context::<HSVState>().hue;
-    let sat = use_context::<HSVState>().saturation;
-    let val = use_context::<HSVState>().value;
+    let mut hue = use_context::<HSVState>().hue;
+    let mut sat = use_context::<HSVState>().saturation;
+    let mut val = use_context::<HSVState>().value;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
 
     #[allow(unused)]
     use_effect(move || {
         if wgpu_on() {
             spawn(async move {
+                hue.set(0.0);
+                sat.set(0.0);
+                val.set(0.0);
                 let mut image_datas: VecDeque<DynamicImage> = image_data_q.cloned();
                 console::log_1(&format!("Images : {}", image_datas.clone().len()).into());
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
