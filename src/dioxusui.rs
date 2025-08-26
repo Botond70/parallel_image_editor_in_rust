@@ -10,9 +10,10 @@ use crate::state::app_state::{
 };
 use dioxus::prelude::*;
 use image::DynamicImage;
-use web_sys::{console, window};
+use web_sys::{console, window, Window};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+pub static GLOBAL_WINDOW_HANDLE: GlobalSignal<Window> = Signal::global(|| window().expect("No global window found"));
 
 #[component]
 pub fn App() -> Element {
