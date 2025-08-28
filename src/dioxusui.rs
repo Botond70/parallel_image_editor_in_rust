@@ -6,7 +6,7 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal,
+    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal, TestPanelVisibility
 };
 use dioxus::prelude::*;
 use image::DynamicImage;
@@ -38,6 +38,11 @@ pub fn App() -> Element {
     let saturation = use_signal(|| 0 as f32);
     let value = use_signal(|| 0 as f32);
 
+    let panel_visibility = use_signal(|| false);
+
+    use_context_provider(|| TestPanelVisibility {
+        visibility: panel_visibility,
+    });
     use_context_provider(|| GalleryState {
         grid_size,
         visibility: dropdown_visible,
@@ -81,7 +86,6 @@ pub fn WorkSpace() -> Element {
         FootBar {}
         div { class: "work-space",
             SideBar {}
-            HSVPanel {}
             ImageBoard {}
         }
     }

@@ -41,7 +41,7 @@ body,
 }
 
 #hsv-panel-container {
-    position: relative;
+    position: absolute;
     z-index: 500;
     border: 1px solid var(--border-color);
     border-radius: 15px;

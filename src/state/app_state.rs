@@ -44,3 +44,8 @@ pub struct HSVState {
     pub saturation: Signal<f32>,
     pub value: Signal<f32>,
 }
+
+#[derive(Clone, Copy)]
+pub struct TestPanelVisibility {
+    pub visibility: Signal<bool>,
+}
