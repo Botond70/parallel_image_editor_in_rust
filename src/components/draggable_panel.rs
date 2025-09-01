@@ -12,6 +12,10 @@ enum ResizeType {
     Right,
     Bottom,
     Left,
+    TopLeft,
+    TopRight,
+    BottomRight,
+    BottomLeft,
 }
 
 #[derive(PartialEq, Clone, Props)]
@@ -53,13 +57,15 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
         }
     };
 
-    // mouse move handler for resizing a panel
     let resize_handle = move |event: MouseEvent| {
         if let Some(resize_dir) = *resize_type.read() {
+            let start_x = last_resize_x();
+            let start_y = last_resize_y();
+            let dx = event.client_x() as f64 - start_x;
+            let dy = event.client_y() as f64 - start_y;
+
             match resize_dir {
                 ResizeType::Left => {
-                    let start_x = last_resize_x();
-                    let dx = event.client_x() as f64 - start_x;
                     let new_width = width() - dx;
 
                     if new_width >= 170.0 && new_width <= 600.0 {
@@ -67,11 +73,9 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                         let (tx, ty) = translation();
                         translation.set((tx + dx, ty));
                         width.set(new_width);
-                    }
+                    } 
                 }
                 ResizeType::Right => {
-                    let start_x = last_resize_x();
-                    let dx = event.client_x() as f64 - start_x;
                     let new_width = width() + dx;
 
                     if new_width >= 170.0 && new_width <= 600.0 {
@@ -80,8 +84,6 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     }
                 }
                 ResizeType::Top => {
-                    let start_y = last_resize_y();
-                    let dy = event.client_y() as f64 - start_y;
                     let new_height = height() - dy;
 
                     if new_height >= 200.0 && new_height <= 300.0 {
@@ -92,8 +94,6 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     }
                 }
                 ResizeType::Bottom => {
-                    let start_y = last_resize_y();
-                    let dy = event.client_y() as f64 - start_y;
                     let new_height = height() + dy;
 
                     if new_height >= 200.0 && new_height <= 300.0 {
@@ -101,6 +101,7 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                         height.set(new_height);
                     }
                 }
+                _ => {}
             }
         }
     };
@@ -186,6 +187,34 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             div { id: "bottom-resize-draggable",
                 onmousedown: move |evt| {
                     resize_type.set(Some(ResizeType::Bottom));
+                    last_resize_y.set(evt.client_coordinates().y);
+                }
+            }
+            div { id: "top-left-resize-draggable",
+                onmousedown: move |evt| {
+                    resize_type.set(Some(ResizeType::TopLeft));
+                    last_resize_x.set(evt.client_coordinates().x);
+                    last_resize_y.set(evt.client_coordinates().y);
+                }
+            }
+            div { id: "top-right-resize-draggable",
+                onmousedown: move |evt| {
+                    resize_type.set(Some(ResizeType::TopRight));
+                    last_resize_x.set(evt.client_coordinates().x);
+                    last_resize_y.set(evt.client_coordinates().y);
+                }
+            }
+            div { id: "bottom-right-resize-draggable",
+                onmousedown: move |evt| {
+                    resize_type.set(Some(ResizeType::BottomRight));
+                    last_resize_x.set(evt.client_coordinates().x);
+                    last_resize_y.set(evt.client_coordinates().y);
+                }
+            }
+            div { id: "bottom-left-resize-draggable",
+                onmousedown: move |evt| {
+                    resize_type.set(Some(ResizeType::BottomLeft));
+                    last_resize_x.set(evt.client_coordinates().x);
                     last_resize_y.set(evt.client_coordinates().y);
                 }
             }

@@ -54,35 +54,65 @@ body,
     overflow: hidden;
 }
 
-#left-resize-draggable {
-    position: absolute;
-    width: 3px;
-    height: 100%;
-    cursor: col-resize;
-}
-
+#left-resize-draggable,
 #right-resize-draggable {
     position: absolute;
     width: 3px;
     height: 100%;
-    right: 0;
     cursor: col-resize;
 }
 
-#top-resize-draggable {
-    position: absolute;
-    width: 100%;
-    height: 3px;
-    top: 0;
-    cursor: row-resize;
-}
-
+#top-resize-draggable,
 #bottom-resize-draggable {
     position: absolute;
     width: 100%;
     height: 3px;
-    bottom: 0;
     cursor: row-resize;
+}
+
+#right-resize-draggable {
+    right: 0;
+}
+
+#bottom-resize-draggable {
+    bottom: 0;
+}
+
+#top-left-resize-draggable,
+#top-right-resize-draggable,
+#bottom-right-resize-draggable,
+#bottom-left-resize-draggable {
+    position: absolute;
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+}
+
+#top-left-resize-draggable,
+#bottom-right-resize-draggable {
+    cursor: nwse-resize;
+}
+
+#top-right-resize-draggable,
+#bottom-left-resize-draggable {
+    cursor: nesw-resize;
+}
+
+#top-left-resize-draggable {
+    left: 0;
+}
+
+#top-right-resize-draggable {
+    right: 0;
+}
+
+#bottom-right-resize-draggable {
+    bottom: 0;
+    right: 0;
+}
+
+#bottom-left-resize-draggable {
+    bottom: 0;
 }
 
 .panel-title {
