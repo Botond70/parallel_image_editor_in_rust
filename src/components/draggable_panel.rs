@@ -63,45 +63,56 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             let start_y = last_resize_y();
             let dx = event.client_x() as f64 - start_x;
             let dy = event.client_y() as f64 - start_y;
+            
+            let mut new_width = width();
+            let mut new_height = height();
 
+            let (mut tx,mut ty) = translation();
+            let mut width_changed = false;
+            let mut height_changed = false;
+
+            // calculate the horizontal resize value with translation
             match resize_dir {
-                ResizeType::Left => {
-                    let new_width = width() - dx;
-
+                ResizeType::Left | ResizeType::TopLeft | ResizeType::BottomLeft => {
+                    new_width -= dx;
                     if new_width >= 170.0 && new_width <= 600.0 {
-                        last_resize_x.set(event.client_x() as f64);
-                        let (tx, ty) = translation();
-                        translation.set((tx + dx, ty));
-                        width.set(new_width);
+                        tx += dx;
                     } 
+                    width_changed = true;
                 }
-                ResizeType::Right => {
-                    let new_width = width() + dx;
-
-                    if new_width >= 170.0 && new_width <= 600.0 {
-                        last_resize_x.set(event.client_x() as f64);
-                        width.set(new_width);
-                    }
-                }
-                ResizeType::Top => {
-                    let new_height = height() - dy;
-
-                    if new_height >= 200.0 && new_height <= 300.0 {
-                        let (tx, ty) = translation();
-                        translation.set((tx, ty + dy));
-                        last_resize_y.set(event.client_y() as f64);
-                        height.set(new_height);
-                    }
-                }
-                ResizeType::Bottom => {
-                    let new_height = height() + dy;
-
-                    if new_height >= 200.0 && new_height <= 300.0 {
-                        last_resize_y.set(event.client_y() as f64);
-                        height.set(new_height);
-                    }
+                ResizeType::Right | ResizeType::TopRight | ResizeType::BottomRight => {
+                    new_width += dx;
+                    width_changed = true;
                 }
                 _ => {}
+            }
+
+            // calculate the vertical resize value with translation
+            match resize_dir {
+                ResizeType::Top | ResizeType::TopLeft | ResizeType::TopRight => {
+                    new_height -= dy;
+                    if new_height >= 200.0 && new_height <= 300.0 {
+                        ty += dy;
+                    }
+                    height_changed = true;
+                }
+                ResizeType::Bottom | ResizeType::BottomLeft | ResizeType::BottomRight => {
+                    new_height += dy;
+                    height_changed = true;
+                }
+                _ => {}
+            }
+
+            if width_changed && new_width >= 170.0 && new_width <= 600.0 {
+                width.set(new_width);
+                translation.set((tx, ty));
+                last_resize_x.set(event.client_x() as f64);
+            }
+
+            if height_changed && new_height >= 200.0 && new_height <= 300.0 {
+                height.set(new_height);
+                translation.set((tx, ty));
+                last_resize_y.set(event.client_y() as f64);
             }
         }
     };
