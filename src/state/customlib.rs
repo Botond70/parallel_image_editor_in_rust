@@ -11,6 +11,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use wasm_bindgen::JsCast;
 use web_sys::*;
 use wgpu::util::DeviceExt;
+use wgpu::wgc::resource::StagingBuffer;
 use wgpu::*;
 
 #[repr(C)]
@@ -27,6 +28,10 @@ impl Globals {
             _pad: 0.0,
         }
     }
+}
+
+pub struct Filesave_config {
+    pub path: String,
 }
 pub struct State {
     tx: Sender<DynamicImage>,
@@ -60,12 +65,22 @@ impl State {
 
         let output_buffer_size = (u32_size * texture_size) as wgpu::BufferAddress;
         let output_buffer_desc = wgpu::BufferDescriptor {
+            label: Some("Output Buffer"),
             size: output_buffer_size,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            label: None,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         };
-        let output_buffer = self.device.create_buffer(&output_buffer_desc);
+
+        let output_buffer = self.device.create_buffer(&output_buffer_desc); // GPU side
+
+        let staging_buffer_desc = wgpu::BufferDescriptor {
+            label: Some("Staging Buffer"),
+            size: output_buffer_size,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        };
+
+        let staging_buffer = self.device.create_buffer(&staging_buffer_desc); // CPU side
 
         let mut encoder = self
             .device
@@ -175,7 +190,11 @@ impl State {
         });
     }
 
-    pub fn draw(&mut self, update_texture: bool) {
+    pub fn draw_to_texture(&mut self, filesave_config: Filesave_config) {
+        self.draw(false, Some(filesave_config))
+    }
+
+    pub fn draw(&mut self, update_texture: bool, filesave_config: Option<Filesave_config>) {
         if update_texture {
             self.load_image_to_gpu(); // only use this when image is changed
         }
@@ -190,17 +209,36 @@ impl State {
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
         // start rendering the new frame
-        let frame = match self.surface.get_current_texture() {
+
+        let mut frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
             Err(err) => {
                 console::log_1(&format!("Surface error: {:?}", err).into());
                 return;
             }
         };
+        let mut frame_texture = frame.texture.clone();
+        let width = frame_texture.size().width;
+        let height = frame_texture.size().height;
 
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        if filesave_config.is_some() {
+            frame_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Filesaver Texture"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                view_formats: &[self.config.format],
+            });
+        }
+
+        let view = frame_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self
             .device
@@ -236,9 +274,50 @@ impl State {
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
         }
+        if filesave_config.is_some() {
+            let buffer_size = width * height * 4; // for RGBA8
+            let output_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Output Buffer"),
+                size: buffer_size as u64,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+            encoder.copy_texture_to_buffer(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &frame_texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                wgpu::TexelCopyBufferInfo {
+                    buffer: &output_buffer,
+                    layout: wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(4 * width),
+                        rows_per_image: Some(height),
+                    },
+                },
+                wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+            );
 
-        self.queue.submit(Some(encoder.finish()));
-        frame.present();
+            self.queue.submit(Some(encoder.finish()));
+
+            let buffer_slice = output_buffer.slice(..);
+            buffer_slice.map_async(wgpu::MapMode::Read, |_| {});
+            let _ = self.device.poll(wgpu::PollType::Wait);
+            let data = buffer_slice.get_mapped_range();
+            match image::save_buffer("output.png", &data, width, height, image::ColorType::Rgba8) {
+                Ok(_) => return,
+                Err(e) => console::log_1(&format!("Threw an error: {}", e.to_string()).into()),
+            };
+        } else {
+            self.queue.submit(Some(encoder.finish()));
+            frame.present();
+        }
     }
 
     pub fn next(&mut self) {

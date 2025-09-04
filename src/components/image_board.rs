@@ -55,7 +55,6 @@ pub fn ImageBoard() -> Element {
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
                 state.borrow_mut().set_index(curr_index() as u32);
-                wgpu_state_signal.set(Some(state.clone()));
                 image_size.set((
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
@@ -70,7 +69,8 @@ pub fn ImageBoard() -> Element {
                 }
                 state.borrow_mut().receive().await;
                 ready_signal.set(true);
-                state.borrow_mut().draw(true);
+                state.borrow_mut().draw(true, None);
+                wgpu_state_signal.set(Some(state.clone()));
                 console::log_1(&"Drew first image".into());
             });
         };
@@ -85,7 +85,7 @@ pub fn ImageBoard() -> Element {
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
-                wgpu_state.draw(false);
+                wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
             }
         }
