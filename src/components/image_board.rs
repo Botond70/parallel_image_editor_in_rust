@@ -39,6 +39,7 @@ pub fn ImageBoard() -> Element {
     let mut hue = use_context::<HSVState>().hue;
     let mut sat = use_context::<HSVState>().saturation;
     let mut val = use_context::<HSVState>().value;
+    let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
 
     #[allow(unused)]
@@ -94,13 +95,12 @@ pub fn ImageBoard() -> Element {
         div { class: "image-container",
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
-                let mut scroll_delta = get_scroll_value(evt.delta());
+                let scroll_delta = get_scroll_value(evt.delta());
                 if scroll_delta > 0.0 {
-                    scroll_delta = -5.0;
+                    zoom_signal.set(((zoom_signal() as f64 / zoom_speed) as i64).max(zoom_limits().0).min(zoom_limits().1));
                 } else {
-                    scroll_delta = 5.0;
+                    zoom_signal.set(((zoom_signal() as f64 * zoom_speed) as i64).max(zoom_limits().0).min(zoom_limits().1));
                 }
-                zoom_signal.set((zoom_signal() + scroll_delta as i64).max(zoom_limits().0).min(zoom_limits().1));
             },
             onmousedown: move |evt| {
                 is_dragging.set(true);
