@@ -310,7 +310,6 @@ input::-moz-range-thumb {
     align-items: center;
     justify-content: center;
     width: auto;
-    height: auto;
     max-height: 75vh;
 }
 
