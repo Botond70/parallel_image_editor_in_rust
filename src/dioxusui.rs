@@ -6,7 +6,7 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal, TestPanelVisibility
+    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal, TestPanelVisibility, DragSignal
 };
 use dioxus::prelude::*;
 use image::DynamicImage;
@@ -40,6 +40,11 @@ pub fn App() -> Element {
 
     let panel_visibility = use_signal(|| false);
 
+    let can_drag = use_signal(|| false);
+
+    use_context_provider(|| DragSignal {
+        can_drag,
+    });
     use_context_provider(|| TestPanelVisibility {
         visibility: panel_visibility,
     });

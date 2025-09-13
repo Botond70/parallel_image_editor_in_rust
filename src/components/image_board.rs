@@ -1,5 +1,5 @@
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal, DragSignal};
 use crate::state::customlib::State;
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
@@ -24,6 +24,7 @@ pub fn ImageBoard() -> Element {
     let mut curr_index = use_context::<ImageVec>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
+    let mut can_drag = use_context::<DragSignal>().can_drag;
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
@@ -144,9 +145,11 @@ pub fn ImageBoard() -> Element {
                 zoom_signal.set(new_zoom);
             },
             onmousedown: move |evt| {
-                is_dragging.set(true);
-                start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                viewport_size.set(get_viewport_size());
+                if can_drag() {
+                    is_dragging.set(true);
+                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+                    viewport_size.set(get_viewport_size());
+                }
             },
             onmouseleave: move |_| {
                 is_dragging.set(false);

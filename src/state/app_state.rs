@@ -49,3 +49,8 @@ pub struct HSVState {
 pub struct TestPanelVisibility {
     pub visibility: Signal<bool>,
 }
+
+#[derive(Clone, Copy)]
+pub struct DragSignal {
+    pub can_drag: Signal<bool>,
+}

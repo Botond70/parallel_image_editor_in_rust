@@ -1,5 +1,5 @@
 use crate::components::draggable_panel::DraggablePanel;
-use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility};
+use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility, DragSignal};
 use dioxus::prelude::*;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -10,6 +10,7 @@ const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
 const RESIZE_BUTTON_SVG: Asset = asset!("/assets/resize_button.svg");
 const BRUSH_BUTTON_SVG: Asset = asset!("/assets/brush_button.svg");
+const DRAG_BUTTON_SVG: Asset = asset!("/assets/drag_button.svg");
 
 #[component]
 pub fn HSVPanel() -> Element {
@@ -100,6 +101,7 @@ fn TestPanel() -> Element {
 #[component]
 pub fn SideBar() -> Element {
     let is_visible = *use_context::<SideBarVisibility>().state.read();
+    let mut image_is_draggable = use_context::<DragSignal>().can_drag;
     let sidebar_style = if is_visible {
         "display: flex;"
     } else {
@@ -141,7 +143,15 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "Brush" }
             }
-            button { class: "btn" , "Click me!"}
+            button { class: "btn",
+                onclick: move |_| {
+                    image_is_draggable.set(!image_is_draggable());
+                },
+                img { class: "button-svg-container", 
+                    src: DRAG_BUTTON_SVG,
+                }
+                span { class: "button-text", "Drag" }
+            }
         }
         if hsv_is_visible() {
             HSVPanel {  }
