@@ -97,52 +97,54 @@ pub fn ImageBoard() -> Element {
         div { class: "image-container",
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
-                evt.prevent_default();
+                if wgpu_on() {
+                    evt.prevent_default();
 
-                let delta = get_scroll_value(evt.delta());
+                    let delta = get_scroll_value(evt.delta());
 
-                let old_scale = zoom_signal() as f64 / 100.0;
-                let new_scale = if delta > 0.0 {
-                    (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
-                } else {
-                    (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
-                };
+                    let old_scale = zoom_signal() as f64 / 100.0;
+                    let new_scale = if delta > 0.0 {
+                        (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
+                    } else {
+                        (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
+                    };
 
-                // check if zoom is at limit
-                let new_zoom = (new_scale * 100.0).round() as i64;
-                if new_zoom == zoom_signal() {
-                    return;
+                    // check if zoom is at limit
+                    let new_zoom = (new_scale * 100.0).round() as i64;
+                    if new_zoom == zoom_signal() {
+                        return;
+                    }
+
+                    let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
+                    let rect = canvas_el.get_bounding_client_rect();
+                    let rect_left = rect.left();
+                    let rect_top = rect.top();
+
+                    let client_x = evt.coordinates().client().x;
+                    let client_y = evt.coordinates().client().y;
+
+                    let (tx, ty) = translation();
+
+                    // calculate the position of the mouse relative to our canvas
+                    let local_trans_x = client_x - rect_left;
+                    let local_trans_y = client_y - rect_top;
+
+                    // calculate the new translation, taking scale into account
+                    let ratio = new_scale / old_scale;
+                    let new_tx = tx + (1.0 - ratio) * local_trans_x;
+                    let new_ty = ty + (1.0 - ratio) * local_trans_y;
+
+                    // clamp to viewport using new scale
+                    let (clamped_tx, clamped_ty) = clamp_translate_value(
+                        new_tx,
+                        new_ty,
+                        viewport_size(),
+                        (image_size().0 * new_scale, image_size().1 * new_scale),
+                    );
+
+                    translation.set((clamped_tx, clamped_ty));
+                    zoom_signal.set(new_zoom);
                 }
-
-                let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
-                let rect = canvas_el.get_bounding_client_rect();
-                let rect_left = rect.left();
-                let rect_top = rect.top();
-
-                let client_x = evt.coordinates().client().x;
-                let client_y = evt.coordinates().client().y;
-
-                let (tx, ty) = translation();
-
-                // calculate the position of the mouse relative to our canvas
-                let local_trans_x = client_x - rect_left;
-                let local_trans_y = client_y - rect_top;
-
-                // calculate the new translation, taking scale into account
-                let ratio = new_scale / old_scale;
-                let new_tx = tx + (1.0 - ratio) * local_trans_x;
-                let new_ty = ty + (1.0 - ratio) * local_trans_y;
-
-                // clamp to viewport using new scale
-                let (clamped_tx, clamped_ty) = clamp_translate_value(
-                    new_tx,
-                    new_ty,
-                    viewport_size(),
-                    (image_size().0 * new_scale, image_size().1 * new_scale),
-                );
-
-                translation.set((clamped_tx, clamped_ty));
-                zoom_signal.set(new_zoom);
             },
             onmousedown: move |evt| {
                 if can_drag() {
