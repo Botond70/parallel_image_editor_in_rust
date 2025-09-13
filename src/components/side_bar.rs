@@ -113,7 +113,7 @@ pub fn SideBar() -> Element {
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
-            button { class: "btn",
+            button { class: if hsv_is_visible() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     hsv_is_visible.set(!hsv_is_visible());
                 },
@@ -122,7 +122,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "HSV" }
             }
-            button { class: "btn",
+            button { class: if test_panel_visibility() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     test_panel_visibility.set(!test_panel_visibility());
                 },
@@ -143,7 +143,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "Brush" }
             }
-            button { class: "btn",
+            button { class: if image_is_draggable() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     image_is_draggable.set(!image_is_draggable());
                 },
