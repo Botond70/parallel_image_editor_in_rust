@@ -1,17 +1,18 @@
 use crate::state::app_state::HSVState;
+use crate::utils::utils::save_png;
 use dioxus::hooks::use_context;
-use dioxus::html::input;
 use image::DynamicImage;
 use image::GenericImageView;
-use std::alloc::GlobalAlloc;
+use image::{ImageBuffer, Rgba};
 use std::collections::VecDeque;
-use std::str::Bytes;
+use std::sync::mpsc::channel;
 use std::sync::mpsc::{self, RecvError};
 use std::sync::mpsc::{Receiver, Sender};
+use std::thread::spawn;
 use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::*;
 use wgpu::util::DeviceExt;
-use wgpu::wgc::resource::StagingBuffer;
 use wgpu::*;
 
 #[repr(C)]
@@ -29,7 +30,7 @@ impl Globals {
         }
     }
 }
-
+#[derive(Clone)]
 pub struct Filesave_config {
     pub path: String,
 }
@@ -50,6 +51,7 @@ pub struct State {
     pub num_indices: u32,
     pub diffuse_bind_group: wgpu::BindGroup,
     pub globals_buffer: wgpu::Buffer,
+    pub output_buffer: Option<wgpu::Buffer>,
 }
 
 impl State {
@@ -191,7 +193,8 @@ impl State {
     }
 
     pub fn draw_to_texture(&mut self, filesave_config: Filesave_config) {
-        self.draw(false, Some(filesave_config))
+        self.draw(false, Some(filesave_config.clone()));
+        console::log_1(&format!("File saved to: {}", filesave_config.path).into());
     }
 
     pub fn draw(&mut self, update_texture: bool, filesave_config: Option<Filesave_config>) {
@@ -276,12 +279,12 @@ impl State {
         }
         if filesave_config.is_some() {
             let buffer_size = width * height * 4; // for RGBA8
-            let output_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            self.output_buffer = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Output Buffer"),
                 size: buffer_size as u64,
                 usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
                 mapped_at_creation: false,
-            });
+            }));
             encoder.copy_texture_to_buffer(
                 wgpu::TexelCopyTextureInfo {
                     texture: &frame_texture,
@@ -290,7 +293,7 @@ impl State {
                     aspect: wgpu::TextureAspect::All,
                 },
                 wgpu::TexelCopyBufferInfo {
-                    buffer: &output_buffer,
+                    buffer: &self.output_buffer.as_mut().unwrap(),
                     layout: wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(4 * width),
@@ -305,15 +308,34 @@ impl State {
             );
 
             self.queue.submit(Some(encoder.finish()));
-
+            let output_buffer = self.output_buffer.as_ref().unwrap();
             let buffer_slice = output_buffer.slice(..);
-            buffer_slice.map_async(wgpu::MapMode::Read, |_| {});
-            let _ = self.device.poll(wgpu::PollType::Wait);
-            let data = buffer_slice.get_mapped_range();
-            match image::save_buffer("output.png", &data, width, height, image::ColorType::Rgba8) {
-                Ok(_) => return,
-                Err(e) => console::log_1(&format!("Threw an error: {}", e.to_string()).into()),
-            };
+
+            let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
+
+            let output_buffer_clone = output_buffer.clone();
+            let device_clone = self.device.clone();
+
+            buffer_slice.map_async(wgpu::MapMode::Read, move |res| {
+                sender.send(res).unwrap();
+            });
+
+            spawn_local(async move {
+                if receiver.receive().await.unwrap().is_ok() {
+                    let buffer_slice = output_buffer_clone.slice(..);
+                    let data = buffer_slice.get_mapped_range();
+                    device_clone.poll(wgpu::PollType::Wait);
+                    let buffer = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data).unwrap();
+                    save_png(
+                        buffer.to_vec(),
+                        width,
+                        height,
+                        filesave_config.unwrap().path,
+                    );
+                    drop(buffer);
+                    output_buffer_clone.unmap();
+                }
+            });
         } else {
             self.queue.submit(Some(encoder.finish()));
             frame.present();
@@ -651,6 +673,7 @@ impl State {
             num_indices: num_indices,
             diffuse_bind_group: diffuse_bind_group,
             globals_buffer: globals_buffer.clone(),
+            output_buffer: None,
         }
     }
 }

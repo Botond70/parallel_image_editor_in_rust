@@ -1,5 +1,5 @@
 use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
-use crate::state::customlib::State;
+use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
@@ -186,6 +186,13 @@ pub fn ImageBoard() -> Element {
                             height: format!("{}px",image_size().1),
                             style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
                         },
+                        button{ onclick: move |_| {
+                        if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                            let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                            wgpu_state.draw_to_texture(Filesave_config{path: String::from("Xddd.png")});
+                            console::log_1(&"Saved file to...".into());
+                        }
+                    }, "Save?"}
                     }
                 )
                 },
