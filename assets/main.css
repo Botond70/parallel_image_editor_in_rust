@@ -37,6 +37,7 @@ body,
     max-width: 40vw;
     min-width: 4vw;
     height: 100vh;
+    padding: 3px;
     background-color: var(--background-bar);
     border-right: 2px solid var(--border-color);
 }
@@ -229,7 +230,7 @@ input::-moz-range-thumb {
     row-gap: 2px;
 }
 
-.dropdown-content .btn {
+.dropdown-content .btn, .sidebar-container .btn {
     width: 100%;
 }
 
@@ -250,11 +251,6 @@ input::-moz-range-thumb {
     transition: background-color 0.15s ease-in-out,
         color 0.15s ease-in-out;
     box-shadow: none;
-}
-
-.sidebar-container .btn {
-    width: 100%;
-    max-width: 45px;
 }
 
 .btn:hover {
