@@ -190,7 +190,6 @@ pub fn ImageBoard() -> Element {
                         if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                             let mut wgpu_state = wgpu_state_rc.borrow_mut();
                             wgpu_state.draw_to_texture(Filesave_config{path: String::from("Xddd.png")});
-                            console::log_1(&"Saved file to...".into());
                         }
                     }, "Save?"}
                     }

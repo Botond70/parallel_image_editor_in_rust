@@ -60,3 +60,7 @@ pub fn save_png(buffer: Vec<u8>, width: u32, height: u32, filename: String) {
     document.body().unwrap().remove_child(&a_elem).unwrap();
     Url::revoke_object_url(&url).unwrap();
 }
+
+pub fn align_to_256(x: u32) -> u32 {
+    ((x + 255) / 256) * 256
+}

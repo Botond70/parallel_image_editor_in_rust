@@ -1,6 +1,7 @@
 use crate::state::app_state::HSVState;
-use crate::utils::utils::save_png;
+use crate::utils::utils::{align_to_256, save_png};
 use dioxus::hooks::use_context;
+use dioxus::html::output;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::{ImageBuffer, Rgba};
@@ -51,83 +52,10 @@ pub struct State {
     pub num_indices: u32,
     pub diffuse_bind_group: wgpu::BindGroup,
     pub globals_buffer: wgpu::Buffer,
-    pub output_buffer: Option<wgpu::Buffer>,
+    pub output_buffer: wgpu::Buffer,
 }
 
 impl State {
-    pub async fn save_to_file(&mut self, filepath: String) {
-        let u32_size = std::mem::size_of::<u32>() as u32;
-        let frame = &self.surface.get_current_texture().unwrap().texture;
-        let texture_dims = self
-            .img_vec
-            .get(self.img_index as usize)
-            .unwrap()
-            .dimensions();
-        let texture_size = texture_dims.0 * texture_dims.1;
-
-        let output_buffer_size = (u32_size * texture_size) as wgpu::BufferAddress;
-        let output_buffer_desc = wgpu::BufferDescriptor {
-            label: Some("Output Buffer"),
-            size: output_buffer_size,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
-            mapped_at_creation: false,
-        };
-
-        let output_buffer = self.device.create_buffer(&output_buffer_desc); // GPU side
-
-        let staging_buffer_desc = wgpu::BufferDescriptor {
-            label: Some("Staging Buffer"),
-            size: output_buffer_size,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        };
-
-        let staging_buffer = self.device.create_buffer(&staging_buffer_desc); // CPU side
-
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        encoder.copy_texture_to_buffer(
-            wgpu::TexelCopyTextureInfo {
-                aspect: wgpu::TextureAspect::All,
-                texture: &frame,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-            },
-            wgpu::TexelCopyBufferInfo {
-                buffer: &output_buffer,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(u32_size * texture_size),
-                    rows_per_image: Some(texture_size),
-                },
-            },
-            frame.size(),
-        );
-        {
-            let buffer_slice = output_buffer.slice(..);
-
-            let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
-            buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
-                tx.send(result).unwrap();
-            });
-            match self.device.poll(wgpu::PollType::Wait) {
-                Err(_) => console::log_1(&"Device error".into()),
-                Ok(_) => return,
-            };
-            rx.receive().await.unwrap().unwrap();
-
-            let data = buffer_slice.get_mapped_range();
-
-            use image::{ImageBuffer, Rgba};
-            let buffer =
-                ImageBuffer::<Rgba<u8>, _>::from_raw(texture_size, texture_size, data).unwrap();
-            buffer.save(filepath).unwrap();
-        };
-        output_buffer.unmap();
-    }
-
     pub fn load_image_to_gpu(&mut self) {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
@@ -195,6 +123,7 @@ impl State {
     pub fn draw_to_texture(&mut self, filesave_config: Filesave_config) {
         self.draw(false, Some(filesave_config.clone()));
         console::log_1(&format!("File saved to: {}", filesave_config.path).into());
+        self.draw(false, None); // rerender
     }
 
     pub fn draw(&mut self, update_texture: bool, filesave_config: Option<Filesave_config>) {
@@ -220,12 +149,15 @@ impl State {
                 return;
             }
         };
+
+        let render_target_texture: &Texture;
+        let temp_texture: Texture;
         let mut frame_texture = frame.texture.clone();
         let width = frame_texture.size().width;
         let height = frame_texture.size().height;
 
         if filesave_config.is_some() {
-            frame_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            temp_texture = self.device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("Filesaver Texture"),
                 size: wgpu::Extent3d {
                     width,
@@ -239,9 +171,12 @@ impl State {
                 dimension: wgpu::TextureDimension::D2,
                 view_formats: &[self.config.format],
             });
+            render_target_texture = &temp_texture;
+        } else {
+            render_target_texture = &frame.texture;
         }
 
-        let view = frame_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = render_target_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self
             .device
@@ -259,8 +194,8 @@ impl State {
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
+                            g: 0.6,
+                            b: 0.3,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -270,33 +205,35 @@ impl State {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
         }
+        let unpadded_bytes_per_row = 4 * width;
+        let padded_bytes_per_row = align_to_256(unpadded_bytes_per_row);
         if filesave_config.is_some() {
-            let buffer_size = width * height * 4; // for RGBA8
-            self.output_buffer = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
+            let buffer_size = height * padded_bytes_per_row; // for RGBA8
+            self.output_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Output Buffer"),
                 size: buffer_size as u64,
                 usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
                 mapped_at_creation: false,
-            }));
+            });
+
             encoder.copy_texture_to_buffer(
                 wgpu::TexelCopyTextureInfo {
-                    texture: &frame_texture,
+                    texture: &render_target_texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d::ZERO,
                     aspect: wgpu::TextureAspect::All,
                 },
                 wgpu::TexelCopyBufferInfo {
-                    buffer: &self.output_buffer.as_mut().unwrap(),
+                    buffer: &self.output_buffer,
                     layout: wgpu::TexelCopyBufferLayout {
                         offset: 0,
-                        bytes_per_row: Some(4 * width),
+                        bytes_per_row: Some(padded_bytes_per_row),
                         rows_per_image: Some(height),
                     },
                 },
@@ -308,12 +245,12 @@ impl State {
             );
 
             self.queue.submit(Some(encoder.finish()));
-            let output_buffer = self.output_buffer.as_ref().unwrap();
-            let buffer_slice = output_buffer.slice(..);
+
+            let buffer_slice = self.output_buffer.slice(..);
 
             let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
 
-            let output_buffer_clone = output_buffer.clone();
+            let output_buffer_clone = self.output_buffer.clone();
             let device_clone = self.device.clone();
 
             buffer_slice.map_async(wgpu::MapMode::Read, move |res| {
@@ -325,7 +262,16 @@ impl State {
                     let buffer_slice = output_buffer_clone.slice(..);
                     let data = buffer_slice.get_mapped_range();
                     device_clone.poll(wgpu::PollType::Wait);
-                    let buffer = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data).unwrap();
+                    let mut image_bytes = Vec::with_capacity((width * height * 4) as usize);
+                    for y in 0..height {
+                        let row_start = (y * padded_bytes_per_row) as usize;
+                        let row_end = row_start + unpadded_bytes_per_row as usize;
+                        let row = &data[row_start..row_end];
+                        image_bytes.extend_from_slice(row);
+                    }
+                    let buffer =
+                        ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, image_bytes).unwrap();
+
                     save_png(
                         buffer.to_vec(),
                         width,
@@ -656,6 +602,13 @@ impl State {
             cache: None,     // 6.
         });
 
+        let output_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Output Buffer"),
+            size: 0 as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+
         State {
             tx: tx,
             rx: rx,
@@ -673,7 +626,7 @@ impl State {
             num_indices: num_indices,
             diffuse_bind_group: diffuse_bind_group,
             globals_buffer: globals_buffer.clone(),
-            output_buffer: None,
+            output_buffer: output_buffer,
         }
     }
 }
