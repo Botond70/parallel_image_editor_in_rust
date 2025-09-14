@@ -1,20 +1,16 @@
 use crate::components::draggable_panel::DraggablePanel;
-use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility};
+use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility, DragSignal};
 use dioxus::prelude::*;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::{MouseEvent, console, window};
 
-const HSV_BUTTON_SVG: &str = "<svg fill='#000000' version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 472.615 472.615' xml:space='preserve'>
-    <g id='SVGRepo_bgCarrier' stroke-width='0'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'> <g> <g>
-    <path d='M192.029,226.462v-48.072H76.202v48.072H0v19.692h76.202v48.067h115.827v-48.067h280.587v-19.692H192.029z M172.337,274.529H95.894v-76.447h76.442V274.529z'></path> </g> </g> <g> <g> <path d='M362.49,398.284v-48.067H246.663v48.067H0v19.692h246.663v48.072H362.49v-48.072h110.125v-19.692H362.49z M342.798,446.356h-76.442v-76.447h76.442V446.356z'></path> </g> </g> <g> <g>
-    <path d='M265.548,54.635V6.567H149.712v48.067H0v19.692h149.712v48.072h115.837V74.327h207.067V54.635H265.548z M245.856,102.707 h-76.452V26.26h76.452V102.707z'></path> </g> </g> </g></svg>";
-
-const CROP_BUTTON_SVG: &str = "<svg fill='#000000' viewBox='0 0 255.99316 255.99316' id='Flat' xmlns='http://www.w3.org/2000/svg'>
-    <g id='SVGRepo_bgCarrier' stroke-width='1.5'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'>
-    <path d='M236.00244,192.001a4.0002,4.0002,0,0,1-4,4h-36v36a4,4,0,0,1-8,0v-36h-124a4.0002,4.0002,0,0,1-4-4V68h-36a4,4,0,0,1,0-8h36V24a4,4,0,1,1,8,0V188.001h164A4.00019,4.00019,0,0,1,236.00244,192.001ZM95.99365,68h92.00879v92.001a4,4,0,0,0,8,0V64a4.0002,4.0002,0,0,0-4-4H95.99365a4,4,0,0,0,0,8Z'></path>
-    </g></svg>";
+const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
+const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
+const RESIZE_BUTTON_SVG: Asset = asset!("/assets/resize_button.svg");
+const BRUSH_BUTTON_SVG: Asset = asset!("/assets/brush_button.svg");
+const DRAG_BUTTON_SVG: Asset = asset!("/assets/drag_button.svg");
 
 #[component]
 pub fn HSVPanel() -> Element {
@@ -93,7 +89,7 @@ pub fn HSVPanel() -> Element {
 fn TestPanel() -> Element {
     rsx! {
         DraggablePanel {
-            title: String::from("TEST PANEL"),
+            title: String::from("Crop"),
             PanelContent:
                 rsx! {
                     div { "PLACEHOLDER" }
@@ -105,6 +101,7 @@ fn TestPanel() -> Element {
 #[component]
 pub fn SideBar() -> Element {
     let is_visible = *use_context::<SideBarVisibility>().state.read();
+    let mut image_is_draggable = use_context::<DragSignal>().can_drag;
     let sidebar_style = if is_visible {
         "display: flex;"
     } else {
@@ -116,28 +113,45 @@ pub fn SideBar() -> Element {
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
-            button { class: "btn",
+            button { class: if hsv_is_visible() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     hsv_is_visible.set(!hsv_is_visible());
                 },
-                span { class: "button-svg-container",
-                    dangerous_inner_html: HSV_BUTTON_SVG
+                img { class: "button-svg-container",
+                    src: ADJUST_BUTTON_SVG,
                 }
                 span { class: "button-text", "HSV" }
             }
-            button { class: "btn",
+            button { class: if test_panel_visibility() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     test_panel_visibility.set(!test_panel_visibility());
-                    console::log_1(&format!("{:?}", test_panel_visibility).into());
                 },
-                span { class: "button-svg-container",
-                    dangerous_inner_html: CROP_BUTTON_SVG
+                img { class: "button-svg-container",
+                    src: CROP_BUTTON_SVG
                 }
                 span { class: "button-text", "Crop" }
             }
-            button { class: "btn" , "Click me!"}
-            button { class: "btn" , "Click me!"}
-            button { class: "btn" , "Click me!"}
+            button { class: "btn",
+                img { class: "button-svg-container",
+                    src: RESIZE_BUTTON_SVG,
+                }
+                span { class: "button-text", "Resize" }
+            }
+            button { class: "btn",
+                img { class: "button-svg-container",
+                    src: BRUSH_BUTTON_SVG,
+                }
+                span { class: "button-text", "Brush" }
+            }
+            button { class: if image_is_draggable() { "btn on" } else { "btn" },
+                onclick: move |_| {
+                    image_is_draggable.set(!image_is_draggable());
+                },
+                img { class: "button-svg-container", 
+                    src: DRAG_BUTTON_SVG,
+                }
+                span { class: "button-text", "Drag" }
+            }
         }
         if hsv_is_visible() {
             HSVPanel {  }

@@ -68,8 +68,6 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             let mut new_height = height();
 
             let (mut tx,mut ty) = translation();
-            let mut width_changed = false;
-            let mut height_changed = false;
 
             // calculate the horizontal resize value with translation
             match resize_dir {
@@ -77,12 +75,10 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     new_width -= dx;
                     if new_width >= 170.0 && new_width <= 600.0 {
                         tx += dx;
-                    } 
-                    width_changed = true;
+                    }
                 }
                 ResizeType::Right | ResizeType::TopRight | ResizeType::BottomRight => {
                     new_width += dx;
-                    width_changed = true;
                 }
                 _ => {}
             }
@@ -94,22 +90,20 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     if new_height >= 200.0 && new_height <= 300.0 {
                         ty += dy;
                     }
-                    height_changed = true;
                 }
                 ResizeType::Bottom | ResizeType::BottomLeft | ResizeType::BottomRight => {
                     new_height += dy;
-                    height_changed = true;
                 }
                 _ => {}
             }
 
-            if width_changed && new_width >= 170.0 && new_width <= 600.0 {
+            if new_width >= 170.0 && new_width <= 600.0 {
                 width.set(new_width);
                 translation.set((tx, ty));
                 last_resize_x.set(event.client_x() as f64);
             }
 
-            if height_changed && new_height >= 200.0 && new_height <= 300.0 {
+            if new_height >= 200.0 && new_height <= 300.0 {
                 height.set(new_height);
                 translation.set((tx, ty));
                 last_resize_y.set(event.client_y() as f64);

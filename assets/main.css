@@ -35,7 +35,9 @@ body,
     justify-content: space-evenly;
     align-items: center;
     max-width: 40vw;
+    min-width: 4vw;
     height: 100vh;
+    padding: 3px;
     background-color: var(--background-bar);
     border-right: 2px solid var(--border-color);
 }
@@ -217,14 +219,18 @@ input::-moz-range-thumb {
 .dropdown-content {
     z-index: 100;
     display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
     position: absolute;
+    padding: 5px;
     background-color: var(--background-bar);
     border: 1px solid var(--border-color);
     border-radius: 3px;
     row-gap: 2px;
 }
 
-.dropdown-content .btn {
+.dropdown-content .btn, .sidebar-container .btn {
     width: 100%;
 }
 
@@ -243,23 +249,25 @@ input::-moz-range-thumb {
     border-radius: 5px;
     padding: 3px;
     transition: background-color 0.15s ease-in-out,
-        box-shadow 0.15s ease-in-out,
         color 0.15s ease-in-out;
     box-shadow: none;
 }
 
 .btn:hover {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: hsla(0, 0%, 100%, 0.13);
     color: white;
     cursor: pointer;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn.on {
+    background-color: hsla(0, 0%, 100%, 0.13);
+    color: white;
 }
 
 .button-svg-container {
     width: 30px;
     height: 30px;
     margin-bottom: 5px;
-    padding: 2px;
     filter: var(--filter-default);
     transition: filter 0.15s ease-in-out;
 }
@@ -269,22 +277,18 @@ input::-moz-range-thumb {
     transition: color 0.15s ease-in-out;
 }
 
-.btn:hover .button-text {
+.btn:hover .button-text,
+.btn.on .button-text {
     color: white;
 }
 
-.btn:hover .button-svg-container {
+.btn:hover .button-svg-container,
+.btn.on .button-svg-container {
     filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(153deg) brightness(107%) contrast(101%);
 }
 
 .dropdown-button-container:hover .dropdown-content {
-    z-index: 105;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-evenly;
-    padding: 5px;
-    width: auto;
 }
 
 .work-space {
@@ -310,7 +314,6 @@ input::-moz-range-thumb {
     align-items: center;
     justify-content: center;
     width: auto;
-    height: auto;
     max-height: 75vh;
 }
 

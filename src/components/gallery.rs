@@ -21,7 +21,7 @@ fn GalleryHeader() -> Element {
     let mut grid_size = use_context::<GalleryState>().grid_size;
     let mut dropdown_visible = use_context::<GalleryState>().visibility;
     let visibility = if dropdown_visible() {
-        "display: column;"
+        "display: flex;"
     } else {
         "display: none;"
     };
