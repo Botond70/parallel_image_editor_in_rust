@@ -10,10 +10,11 @@ use crate::state::app_state::{
 };
 use dioxus::prelude::*;
 use image::DynamicImage;
-use web_sys::{console, window, Window};
+use web_sys::{Window, console, window};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-pub static GLOBAL_WINDOW_HANDLE: GlobalSignal<Window> = Signal::global(|| window().expect("No global window found"));
+pub static GLOBAL_WINDOW_HANDLE: GlobalSignal<Window> =
+    Signal::global(|| window().expect("No global window found"));
 
 #[component]
 pub fn App() -> Element {
@@ -40,6 +41,8 @@ pub fn App() -> Element {
 
     let panel_visibility = use_signal(|| false);
 
+    let save_signal = use_signal(|| 0 as i64);
+
     let can_drag = use_signal(|| false);
 
     use_context_provider(|| DragSignal {
@@ -54,6 +57,7 @@ pub fn App() -> Element {
     });
     use_context_provider(|| WGPUSignal {
         signal: wgpu_signal,
+        save_signal: save_signal,
     });
     use_context_provider(|| SideBarVisibility { state: visibility });
     use_context_provider(|| ImageZoom {

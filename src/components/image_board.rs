@@ -1,6 +1,7 @@
+
+use crate::state::customlib::{Filesave_config, State
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal, DragSignal};
-use crate::state::customlib::State;
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
@@ -43,6 +44,7 @@ pub fn ImageBoard() -> Element {
     let mut val = use_context::<HSVState>().value;
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
+    let mut save_signal = use_context::<WGPUSignal>().save_signal;
 
     #[allow(unused)]
     use_effect(move || {
@@ -57,7 +59,6 @@ pub fn ImageBoard() -> Element {
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
                 state.borrow_mut().set_index(curr_index() as u32);
-                wgpu_state_signal.set(Some(state.clone()));
                 image_size.set((
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
@@ -72,7 +73,8 @@ pub fn ImageBoard() -> Element {
                 }
                 state.borrow_mut().receive().await;
                 ready_signal.set(true);
-                state.borrow_mut().draw(true);
+                state.borrow_mut().draw(true, None);
+                wgpu_state_signal.set(Some(state.clone()));
                 console::log_1(&"Drew first image".into());
             });
         };
@@ -87,8 +89,21 @@ pub fn ImageBoard() -> Element {
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
-                wgpu_state.draw(false);
+                wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
+            }
+        }
+    });
+
+    use_effect(move || {
+        if wgpu_on() && save_signal() > 0 {
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                wgpu_state.draw_to_texture(Filesave_config {
+                    path: String::from("image.png"),
+                });
+                console::log_1(&"Triggered save from signal".into());
+                save_signal.set(0);
             }
         }
     });

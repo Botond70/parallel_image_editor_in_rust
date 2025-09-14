@@ -29,6 +29,7 @@ pub struct ImageVec {
 #[derive(Clone, Copy)]
 pub struct WGPUSignal {
     pub signal: Signal<bool>,
+    pub save_signal: Signal<i64>,
 }
 
 #[derive(Clone, Copy)]

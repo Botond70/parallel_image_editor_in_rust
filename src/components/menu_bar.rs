@@ -1,12 +1,19 @@
+use crate::{
+    app_router::Route,
+    state::app_state::{SideBarVisibility, WGPUSignal},
+};
 use dioxus::prelude::*;
-use crate::{app_router::Route, state::app_state::SideBarVisibility};
 
 #[component]
 pub fn MenuBar() -> Element {
     let curr_state = *use_context::<SideBarVisibility>().state.read();
-
     let toggle = move |_| {
         use_context::<SideBarVisibility>().state.set(!curr_state);
+    };
+
+    let curr_save = *use_context::<WGPUSignal>().save_signal.read();
+    let saver = move |_| {
+        use_context::<WGPUSignal>().save_signal.set(curr_save + 1);
     };
 
     rsx! {
@@ -15,8 +22,7 @@ pub fn MenuBar() -> Element {
                 button {class: "btn", "File" }
                 div { class: "dropdown-content",
                     button { class: "btn", "Load" }
-                    button { class: "btn", "Save" }
-                    button { class: "btn", "Save as" }
+                    button { onclick: saver, class: "btn", "Save as" }
                 }
             }
             div { class: "dropdown-button-container",
