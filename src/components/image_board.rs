@@ -41,6 +41,7 @@ pub fn ImageBoard() -> Element {
     let mut val = use_context::<HSVState>().value;
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
+    let mut save_signal = use_context::<WGPUSignal>().save_signal;
 
     #[allow(unused)]
     use_effect(move || {
@@ -87,6 +88,19 @@ pub fn ImageBoard() -> Element {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
                 wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
+            }
+        }
+    });
+
+    use_effect(move || {
+        if wgpu_on() && save_signal() > 0 {
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                wgpu_state.draw_to_texture(Filesave_config {
+                    path: String::from("image.png"),
+                });
+                console::log_1(&"Triggered save from signal".into());
+                save_signal.set(0);
             }
         }
     });
@@ -186,12 +200,6 @@ pub fn ImageBoard() -> Element {
                             height: format!("{}px",image_size().1),
                             style: format!("transform: scale({}) translate({}px, {}px);", scale_value, translation().0 / scale_value, translation().1 / scale_value),
                         },
-                        button{ onclick: move |_| {
-                        if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
-                            let mut wgpu_state = wgpu_state_rc.borrow_mut();
-                            wgpu_state.draw_to_texture(Filesave_config{path: String::from("Xddd.png")});
-                        }
-                    }, "Save?"}
                     }
                 )
                 },

@@ -1,5 +1,5 @@
 use crate::state::app_state::HSVState;
-use crate::utils::utils::{align_to_256, save_png};
+use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
 use dioxus::html::output;
 use image::DynamicImage;
@@ -272,7 +272,7 @@ impl State {
                     let buffer =
                         ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, image_bytes).unwrap();
 
-                    save_png(
+                    save_file_via_dialog(
                         buffer.to_vec(),
                         width,
                         height,
