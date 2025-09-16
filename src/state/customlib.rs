@@ -1,4 +1,4 @@
-use crate::state::app_state::HSVState;
+use crate::state::app_state::{CropSignal, HSVState};
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
 use dioxus::html::output;
@@ -19,14 +19,14 @@ use wgpu::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Globals {
-    pub hsv: [f32; 3], //12bytes data
+    pub hsv: [f32; 7], //28bytes data
     pub _pad: f32,     //4bytes padding for alignment
 }
 
 impl Globals {
-    pub fn new(h: f32, s: f32, v: f32) -> Self {
+    pub fn new(h: f32, s: f32, v: f32, l: f32, r: f32, t: f32, b: f32) -> Self {
         Self {
-            hsv: [h, s, v],
+            hsv: [h, s, v, l, r, t, b],
             _pad: 0.0,
         }
     }
@@ -131,12 +131,15 @@ impl State {
             self.load_image_to_gpu(); // only use this when image is changed
         }
 
-        // read hsv values
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
+        let top = use_context::<CropSignal>().top;
+        let right = use_context::<CropSignal>().right;
+        let bottom = use_context::<CropSignal>().bottom;
+        let left = use_context::<CropSignal>().left;
 
-        let globals = Globals::new(hue(), sat(), val());
+        let globals = Globals::new(hue(), sat(), val(), left(), right(), top(), bottom());
         self.queue
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
@@ -514,8 +517,12 @@ impl State {
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
+        let top = use_context::<CropSignal>().top;
+        let right = use_context::<CropSignal>().right;
+        let bottom = use_context::<CropSignal>().bottom;
+        let left = use_context::<CropSignal>().left;
 
-        let globals = Globals::new(hue(), sat(), val());
+        let globals = Globals::new(hue(), sat(), val(), left(), right(), top(), bottom());
 
         let globals_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("globals buffer"),

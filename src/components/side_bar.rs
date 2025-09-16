@@ -1,5 +1,7 @@
 use crate::components::draggable_panel::DraggablePanel;
-use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility, DragSignal};
+use crate::state::app_state::{
+    CropSignal, DragSignal, HSVState, SideBarVisibility, TestPanelVisibility,
+};
 use dioxus::prelude::*;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -89,10 +91,103 @@ pub fn HSVPanel() -> Element {
 fn TestPanel() -> Element {
     rsx! {
         DraggablePanel {
-            title: String::from("Crop"),
+            title: String::from("Test Panel"),
             PanelContent:
                 rsx! {
                     div { "PLACEHOLDER" }
+                }
+        }
+    }
+}
+
+#[component]
+fn CropPanel() -> Element {
+    let mut top = use_context::<CropSignal>().top;
+    let mut bottom = use_context::<CropSignal>().bottom;
+    let mut left = use_context::<CropSignal>().left;
+    let mut right = use_context::<CropSignal>().right;
+    let mut top_slider_value = use_signal(|| 0.0);
+    let mut bottom_slider_value = use_signal(|| 0.0);
+    let mut left_slider_value = use_signal(|| 0.0);
+    let mut right_slider_value = use_signal(|| 0.0);
+
+    rsx! {
+        DraggablePanel {
+            title: String::from("Crop"),
+            PanelContent:
+                rsx! {
+                    div { class: "panel-slider-container",
+                        p { "Left" },
+                        input {
+                            class: "panel-slider",
+                            type: "range",
+                            min: 0.0,
+                            value:"{left_slider_value}" ,
+                            max: 1.0,
+                            step: 0.0001,
+                            oninput: move |e|{
+                                if let Ok(parsed) = e.value().parse::<f32>() {
+                                    left_slider_value.set(parsed);
+                                    left.set(parsed);
+                                }
+                            },
+                        }
+                        p { class: "slider-progress", "{left_slider_value}" }
+                    },
+                    div { class: "panel-slider-container",
+                        p { "Right" },
+                        input {
+                            class: "panel-slider",
+                            type: "range",
+                            min: 0.0,
+                            value:"{right_slider_value}" ,
+                            max: 1.0,
+                            step: 0.0001,
+                            oninput: move |e|{
+                                if let Ok(parsed) = e.value().parse::<f32>() {
+                                    right_slider_value.set(parsed);
+                                    right.set(parsed);
+                                }
+                            },
+                        }
+                        p { class: "slider-progress", "{right_slider_value}" }
+                    },
+                    div { class: "panel-slider-container",
+                        p { "Top" },
+                        input {
+                            class: "panel-slider",
+                            type: "range",
+                            min: 0.0,
+                            value:"{top_slider_value}" ,
+                            max: 1.0,
+                            step: 0.0001,
+                            oninput: move |e|{
+                                if let Ok(parsed) = e.value().parse::<f32>() {
+                                    top_slider_value.set(parsed);
+                                    top.set(parsed);
+                                }
+                            },
+                        }
+                        p { class: "slider-progress", "{top_slider_value}" }
+                    },
+                    div { class: "panel-slider-container",
+                        p { "Bottom" },
+                        input {
+                            class: "panel-slider",
+                            type: "range",
+                            min: 0.0,
+                            value:"{bottom_slider_value}" ,
+                            max: 1.0,
+                            step: 0.0001,
+                            oninput: move |e|{
+                                if let Ok(parsed) = e.value().parse::<f32>() {
+                                    bottom_slider_value.set(parsed);
+                                    bottom.set(parsed);
+                                }
+                            },
+                        }
+                        p { class: "slider-progress", "{bottom_slider_value}" }
+                    },
                 }
         }
     }
@@ -147,7 +242,7 @@ pub fn SideBar() -> Element {
                 onclick: move |_| {
                     image_is_draggable.set(!image_is_draggable());
                 },
-                img { class: "button-svg-container", 
+                img { class: "button-svg-container",
                     src: DRAG_BUTTON_SVG,
                 }
                 span { class: "button-text", "Drag" }
@@ -157,7 +252,7 @@ pub fn SideBar() -> Element {
             HSVPanel {  }
         }
         if test_panel_visibility() {
-            TestPanel {  }
+            CropPanel {  }
         }
     }
 }

@@ -6,7 +6,8 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal, TestPanelVisibility, DragSignal
+    CropSignal, DragSignal, GalleryState, HSVState, ImageVec, ImageZoom, NextImage,
+    SideBarVisibility, TestPanelVisibility, WGPUSignal,
 };
 use dioxus::prelude::*;
 use image::DynamicImage;
@@ -45,9 +46,13 @@ pub fn App() -> Element {
 
     let can_drag = use_signal(|| false);
 
-    use_context_provider(|| DragSignal {
-        can_drag,
-    });
+    let crop_panel_visibility = use_signal(|| false);
+    let left = use_signal(|| 0.0 as f32);
+    let right = use_signal(|| 0.0 as f32);
+    let top = use_signal(|| 0.0 as f32);
+    let bottom = use_signal(|| 0.0 as f32);
+
+    use_context_provider(|| DragSignal { can_drag });
     use_context_provider(|| TestPanelVisibility {
         visibility: panel_visibility,
     });
@@ -78,6 +83,13 @@ pub fn App() -> Element {
         hue,
         saturation,
         value,
+    });
+    use_context_provider(|| CropSignal {
+        visibility: crop_panel_visibility,
+        left,
+        right,
+        top,
+        bottom,
     });
 
     rsx! {
