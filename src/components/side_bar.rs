@@ -26,6 +26,7 @@ pub fn HSVPanel() -> Element {
     rsx! {
         DraggablePanel {
             title: String::from("HSV"),
+            header_visible: true,
             PanelContent:
                 rsx! {
                     div { class: "panel-slider-container",
@@ -92,6 +93,7 @@ fn TestPanel() -> Element {
     rsx! {
         DraggablePanel {
             title: String::from("Test Panel"),
+            header_visible: true,
             PanelContent:
                 rsx! {
                     div { "PLACEHOLDER" }
@@ -114,6 +116,7 @@ fn CropPanel() -> Element {
     rsx! {
         DraggablePanel {
             title: String::from("Crop"),
+            header_visible: true,
             PanelContent:
                 rsx! {
                     div { class: "panel-slider-container",

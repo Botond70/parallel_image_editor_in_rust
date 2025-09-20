@@ -1,3 +1,4 @@
+use crate::components::draggable_panel::{DraggablePanel, DraggablePanelProps};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::state::customlib::{Filesave_config, State};
@@ -238,20 +239,33 @@ pub fn ImageBoard() -> Element {
                 true => {
 
                     rsx!(
-                    div { class: "image-inner",
-                        canvas {
-                            id: "image-board",
-                            draggable: false,
-                            width: format!("{}px",image_size().0),
-                            height: format!("{}px",image_size().1),
-                            style: format!(
-                                "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
-                                translation().0,
-                                translation().1,
-                                zoom_signal() as f64 / 100.0
-                            ),
-                        },
-                    }
+                        DraggablePanel{
+                            title: String::from("Image"),
+                            header_visible: false,
+                            min_width: Some(10.0),
+                            min_height: Some(10.0),
+                            max_width: Some(viewport_size().0 as f64),
+                            max_height: Some(viewport_size().1 as f64),
+                            PanelContent:
+                                rsx! {
+                                    div { class: "image-inner",
+                                    canvas {
+                                        id: "image-board",
+                                        draggable: false,
+                                        width: format!("{}px",image_size().0),
+                                        height: format!("{}px",image_size().1),
+                                        style: format!(
+                                            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
+                                            translation().0,
+                                            translation().1,
+                                            zoom_signal() as f64 / 100.0
+                                        ),
+                                    },
+                                }
+                            }
+                        }
+
+
                 )
                 },
                 false => rsx!(p {class: "text",

@@ -1,10 +1,10 @@
-use dioxus::prelude::{rsx, *};
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use web_sys::{MouseEvent, console, window};
-use crate::state::app_state::HSVState;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
+use crate::state::app_state::HSVState;
+use dioxus::prelude::{rsx, *};
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::Closure;
+use web_sys::{MouseEvent, console, window};
 
 #[derive(Clone, Copy)]
 enum ResizeType {
@@ -20,7 +20,12 @@ enum ResizeType {
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DraggablePanelProps {
+    pub min_width: Option<f64>,
+    pub min_height: Option<f64>,
+    pub max_width: Option<f64>,
+    pub max_height: Option<f64>,
     pub title: String,
+    pub header_visible: bool,
     pub PanelContent: Element,
 }
 
@@ -36,13 +41,13 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
     let mut height = use_signal(|| 200.0);
 
     let panel_style = use_memo(move || {
-            format!(
-                "display: grid; transform: translate({}px, {}px); width: {}px; height: {}px;",
-                translation().0,
-                translation().1,
-                width(),
-                height()
-            )
+        format!(
+            "display: grid; transform: translate({}px, {}px); width: {}px; height: {}px;",
+            translation().0,
+            translation().1,
+            width(),
+            height()
+        )
     });
 
     // mouse move handler for dragging a panel by the title bar
@@ -63,17 +68,19 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             let start_y = last_resize_y();
             let dx = event.client_x() as f64 - start_x;
             let dy = event.client_y() as f64 - start_y;
-            
+
             let mut new_width = width();
             let mut new_height = height();
 
-            let (mut tx,mut ty) = translation();
+            let (mut tx, mut ty) = translation();
 
             // calculate the horizontal resize value with translation
             match resize_dir {
                 ResizeType::Left | ResizeType::TopLeft | ResizeType::BottomLeft => {
                     new_width -= dx;
-                    if new_width >= 170.0 && new_width <= 600.0 {
+                    if new_width >= props.min_width.unwrap_or(170.0)
+                        && new_width <= props.max_width.unwrap_or(600.0)
+                    {
                         tx += dx;
                     }
                 }
@@ -87,7 +94,9 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             match resize_dir {
                 ResizeType::Top | ResizeType::TopLeft | ResizeType::TopRight => {
                     new_height -= dy;
-                    if new_height >= 200.0 && new_height <= 300.0 {
+                    if new_height >= props.min_height.unwrap_or(200.0)
+                        && new_height <= props.max_height.unwrap_or(300.0)
+                    {
                         ty += dy;
                     }
                 }
@@ -97,13 +106,17 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                 _ => {}
             }
 
-            if new_width >= 170.0 && new_width <= 600.0 {
+            if new_width >= props.min_width.unwrap_or(170.0)
+                && new_width <= props.max_width.unwrap_or(600.0)
+            {
                 width.set(new_width);
                 translation.set((tx, ty));
                 last_resize_x.set(event.client_x() as f64);
             }
 
-            if new_height >= 200.0 && new_height <= 300.0 {
+            if new_height >= props.min_height.unwrap_or(200.0)
+                && new_height <= props.max_height.unwrap_or(300.0)
+            {
                 height.set(new_height);
                 translation.set((tx, ty));
                 last_resize_y.set(event.client_y() as f64);
@@ -114,19 +127,20 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
     use_hook_with_cleanup(
         move || {
             let move_closure = Rc::new(Closure::wrap(Box::new(drag_handle) as Box<dyn FnMut(_)>));
-            let resize_closure = Rc::new(Closure::wrap(Box::new(resize_handle) as Box<dyn FnMut(_)>));
+            let resize_closure =
+                Rc::new(Closure::wrap(Box::new(resize_handle) as Box<dyn FnMut(_)>));
 
             GLOBAL_WINDOW_HANDLE()
                 .add_event_listener_with_callback(
                     "mousemove",
-                    resize_closure.as_ref().as_ref().unchecked_ref()
+                    resize_closure.as_ref().as_ref().unchecked_ref(),
                 )
                 .unwrap();
 
             GLOBAL_WINDOW_HANDLE()
                 .add_event_listener_with_callback(
                     "mousemove",
-                    move_closure.as_ref().as_ref().unchecked_ref()
+                    move_closure.as_ref().as_ref().unchecked_ref(),
                 )
                 .unwrap();
 
@@ -139,7 +153,7 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
             GLOBAL_WINDOW_HANDLE()
                 .add_event_listener_with_callback(
                     "mouseup",
-                    up_closure.as_ref().as_ref().unchecked_ref()
+                    up_closure.as_ref().as_ref().unchecked_ref(),
                 )
                 .unwrap();
 
@@ -150,20 +164,21 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                 window
                     .remove_event_listener_with_callback(
                         "mousemove",
-                        move_closure.as_ref().as_ref().unchecked_ref()
+                        move_closure.as_ref().as_ref().unchecked_ref(),
                     )
                     .unwrap();
                 window
                     .remove_event_listener_with_callback(
                         "mouseup",
-                        up_closure.as_ref().as_ref().unchecked_ref()
+                        up_closure.as_ref().as_ref().unchecked_ref(),
                     )
                     .unwrap();
                 window
                     .remove_event_listener_with_callback(
-                        "mousemove", 
-                        resize_closure.as_ref().as_ref().unchecked_ref()
-                    ).unwrap();
+                        "mousemove",
+                        resize_closure.as_ref().as_ref().unchecked_ref(),
+                    )
+                    .unwrap();
             }
         },
     );
@@ -223,20 +238,34 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     last_resize_y.set(evt.client_coordinates().y);
                 }
             }
-            div { class: "panel-title",
-                onmousedown: move |evt| {
-                    is_dragging.set(true);
-                    start_position.set((evt.client_coordinates().x, evt.client_coordinates().y));
+            if(props.header_visible) {
+                div { class: "panel-title",
+                    onmousedown: move |evt| {
+                        is_dragging.set(true);
+                        start_position.set((evt.client_coordinates().x, evt.client_coordinates().y));
+                    },
+                    onmouseup: move |_| {
+                        is_dragging.set(false);
+                    },
+                    p { "{props.title}" },
                 },
-                onmouseup: move |_| {
-                    is_dragging.set(false);
-                },
-                p { "{props.title}" },
-            },
-            div { class: "panel-content",
-                {props.PanelContent}
+                div { class: "panel-content",
+                    {props.PanelContent}
+                }
             }
+            else{
+                div { class: "panel-content",
+                    onmousedown: move |evt| {
+                        is_dragging.set(true);
+                        start_position.set((evt.client_coordinates().x, evt.client_coordinates().y));
+                    },
+                    onmouseup: move |_| {
+                        is_dragging.set(false);
+                    },
+                    {props.PanelContent},
+                },
+            }
+
         }
     }
-
 }
