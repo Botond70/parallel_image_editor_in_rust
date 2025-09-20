@@ -25,7 +25,7 @@ pub struct DraggablePanelProps {
     pub max_width: Option<f64>,
     pub max_height: Option<f64>,
     pub title: String,
-    pub header_visible: bool,
+    pub header_visible: Option<bool>,
     pub PanelContent: Element,
 }
 
@@ -238,7 +238,7 @@ pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
                     last_resize_y.set(evt.client_coordinates().y);
                 }
             }
-            if(props.header_visible) {
+            if(props.header_visible.unwrap_or(true)) {
                 div { class: "panel-title",
                     onmousedown: move |evt| {
                         is_dragging.set(true);
