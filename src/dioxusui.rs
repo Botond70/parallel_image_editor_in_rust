@@ -6,8 +6,10 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-    GalleryState, HSVState, ImageVec, ImageZoom, NextImage, SideBarVisibility, WGPUSignal, TestPanelVisibility, DragSignal
+    DragSignal, GalleryState, HSVState, ImageVec, ImageZoom, NextImage, ResizeState,
+    SideBarVisibility, TestPanelVisibility, WGPUSignal,
 };
+use dioxus::html::canvas::width;
 use dioxus::prelude::*;
 use image::DynamicImage;
 use web_sys::{Window, console, window};
@@ -45,9 +47,11 @@ pub fn App() -> Element {
 
     let can_drag = use_signal(|| false);
 
-    use_context_provider(|| DragSignal {
-        can_drag,
-    });
+    let rs_width = use_signal(|| 800 as u32);
+    let rs_height = use_signal(|| 600 as u32);
+    let resize_panel_visible = use_signal(|| false);
+
+    use_context_provider(|| DragSignal { can_drag });
     use_context_provider(|| TestPanelVisibility {
         visibility: panel_visibility,
     });
@@ -78,6 +82,11 @@ pub fn App() -> Element {
         hue,
         saturation,
         value,
+    });
+    use_context_provider(|| ResizeState {
+        panel_visible: resize_panel_visible,
+        width: rs_width,
+        height: rs_height,
     });
 
     rsx! {

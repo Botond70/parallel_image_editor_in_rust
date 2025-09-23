@@ -1,5 +1,8 @@
 use crate::components::draggable_panel::DraggablePanel;
-use crate::state::app_state::{HSVState, TestPanelVisibility, SideBarVisibility, DragSignal};
+use crate::state::app_state::{
+    DragSignal, HSVState, ResizeState, SideBarVisibility, TestPanelVisibility,
+};
+use dioxus::html::embed::height;
 use dioxus::prelude::*;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -99,6 +102,33 @@ fn TestPanel() -> Element {
 }
 
 #[component]
+fn ResizePanel() -> Element {
+    let mut imwidth = use_context::<ResizeState>().width;
+    let widthval = imwidth();
+    let mut imheight = use_context::<ResizeState>().height;
+    let heightval = imheight();
+    rsx! {
+        DraggablePanel {
+            title: String::from("Resize Image"),
+            PanelContent:
+                rsx! {
+                    input { type: "text", value: "{widthval}", placeholder: "Width" , oninput: move |e| {
+                        if let Ok(parsed) = e.value().parse::<u32>() {
+                            imwidth.set(parsed);
+                        }
+                    }}
+                    p { "x" }
+                    input { type: "text", value: "{heightval}", placeholder: "Height" , oninput: move |e| {
+                        if let Ok(parsed) = e.value().parse::<u32>() {
+                            imheight.set(parsed);
+                        }
+                    }}
+                }
+        }
+    }
+}
+
+#[component]
 pub fn SideBar() -> Element {
     let is_visible = *use_context::<SideBarVisibility>().state.read();
     let mut image_is_draggable = use_context::<DragSignal>().can_drag;
@@ -110,6 +140,7 @@ pub fn SideBar() -> Element {
 
     let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
     let mut test_panel_visibility = use_context::<TestPanelVisibility>().visibility;
+    let mut resize_panel_visibility = use_context::<ResizeState>().panel_visible;
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
@@ -132,6 +163,9 @@ pub fn SideBar() -> Element {
                 span { class: "button-text", "Crop" }
             }
             button { class: "btn",
+            onclick: move |_| {
+                    resize_panel_visibility.set(!resize_panel_visibility());
+                },
                 img { class: "button-svg-container",
                     src: RESIZE_BUTTON_SVG,
                 }
@@ -147,7 +181,7 @@ pub fn SideBar() -> Element {
                 onclick: move |_| {
                     image_is_draggable.set(!image_is_draggable());
                 },
-                img { class: "button-svg-container", 
+                img { class: "button-svg-container",
                     src: DRAG_BUTTON_SVG,
                 }
                 span { class: "button-text", "Drag" }
@@ -158,6 +192,9 @@ pub fn SideBar() -> Element {
         }
         if test_panel_visibility() {
             TestPanel {  }
+        }
+        if resize_panel_visibility() {
+            ResizePanel {  }
         }
     }
 }

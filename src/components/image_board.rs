@@ -1,10 +1,13 @@
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{
+    DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState, WGPUSignal,
+};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
+use dioxus::html::canvas::width;
 use dioxus::html::g::{scale, transform_origin};
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
@@ -28,9 +31,9 @@ pub fn ImageBoard() -> Element {
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
-        let width = window.inner_width().unwrap();
-        let height = window.inner_height().unwrap();
-        (width.as_f64().unwrap(), height.as_f64().unwrap())
+        let win_width = window.inner_width().unwrap();
+        let win_height = window.inner_height().unwrap();
+        (win_width.as_f64().unwrap(), win_height.as_f64().unwrap())
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
     let mut image_size = use_signal(|| (0.0, 0.0));
@@ -44,6 +47,8 @@ pub fn ImageBoard() -> Element {
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
+    let mut width_signal = use_context::<ResizeState>().width;
+    let mut height_signal = use_context::<ResizeState>().height;
 
     #[allow(unused)]
     use_effect(move || {
@@ -62,6 +67,8 @@ pub fn ImageBoard() -> Element {
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
                 ));
+                width_signal.set(first_img.dimensions().0);
+                height_signal.set(first_img.dimensions().1);
                 console::log_1(&"Started WGPU".into());
                 console::log_1(&format!("Images: {}", image_datas.len()).into());
                 let mut wgpusender = state.borrow().sender();
@@ -72,9 +79,9 @@ pub fn ImageBoard() -> Element {
                 }
                 state.borrow_mut().receive().await;
                 state.borrow_mut().set_index(curr_index() as u32);
-                ready_signal.set(true);
                 state.borrow_mut().draw(true, None);
                 wgpu_state_signal.set(Some(state.clone()));
+                ready_signal.set(true);
                 console::log_1(&"Drew first image".into());
             });
         };
@@ -82,9 +89,9 @@ pub fn ImageBoard() -> Element {
 
     use_effect(move || {
         // track hue
-        let hue = hue();
-        let saturation = sat();
-        let value = val();
+        let _hue = hue();
+        let _saturation = sat();
+        let _value = val();
 
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
@@ -107,6 +114,20 @@ pub fn ImageBoard() -> Element {
             }
         } else if save_signal() > 0 {
             save_signal.set(0);
+        }
+    });
+
+    use_effect(move || {
+        if wgpu_on() && ready_signal() && width_signal() > 0 && height_signal() > 0 {
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                wgpu_state.resize(width_signal(), height_signal());
+                console::log_1(&"Triggered from resize signal".into());
+                wgpu_state.draw(false, None);
+            }
+        } else if width_signal() > 0 && height_signal() > 0 {
+            width_signal.set(0);
+            height_signal.set(0);
         }
     });
 

@@ -47,6 +47,13 @@ pub struct HSVState {
 }
 
 #[derive(Clone, Copy)]
+pub struct ResizeState {
+    pub panel_visible: Signal<bool>,
+    pub width: Signal<u32>,
+    pub height: Signal<u32>,
+}
+
+#[derive(Clone, Copy)]
 pub struct TestPanelVisibility {
     pub visibility: Signal<bool>,
 }
