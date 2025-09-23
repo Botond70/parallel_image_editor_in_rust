@@ -57,7 +57,7 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
-                state.borrow_mut().set_index(curr_index() as u32);
+
                 image_size.set((
                     first_img.dimensions().0 as f64,
                     first_img.dimensions().1 as f64,
@@ -71,6 +71,7 @@ pub fn ImageBoard() -> Element {
                     }
                 }
                 state.borrow_mut().receive().await;
+                state.borrow_mut().set_index(curr_index() as u32);
                 ready_signal.set(true);
                 state.borrow_mut().draw(true, None);
                 wgpu_state_signal.set(Some(state.clone()));
@@ -104,6 +105,8 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&"Triggered save from signal".into());
                 save_signal.set(0);
             }
+        } else if save_signal() > 0 {
+            save_signal.set(0);
         }
     });
 

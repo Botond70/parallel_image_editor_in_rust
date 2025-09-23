@@ -2,6 +2,7 @@ use crate::state::app_state::HSVState;
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
 use dioxus::html::output;
+use dioxus::html::u::is;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::{ImageBuffer, Rgba};
@@ -60,6 +61,10 @@ impl State {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
         let dimensions = diffuse_image.dimensions();
+
+        self.config.width = dimensions.0;
+        self.config.height = dimensions.1;
+
         let texture_size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
@@ -121,7 +126,7 @@ impl State {
     }
 
     pub fn draw_to_texture(&mut self, filesave_config: Filesave_config) {
-        self.draw(false, Some(filesave_config.clone()));
+        self.draw(true, Some(filesave_config.clone()));
         console::log_1(&format!("File saved to: {}", filesave_config.path).into());
         self.draw(false, None); // rerender
     }
@@ -153,8 +158,8 @@ impl State {
         let render_target_texture: &Texture;
         let temp_texture: Texture;
         let mut frame_texture = frame.texture.clone();
-        let width = frame_texture.size().width;
-        let height = frame_texture.size().height;
+        let width = self.config.width;
+        let height = self.config.height;
 
         if filesave_config.is_some() {
             temp_texture = self.device.create_texture(&wgpu::TextureDescriptor {
@@ -211,8 +216,16 @@ impl State {
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
         }
+        console::log_1(&format!("Prepared frame of size: {}x{}", width, height).into());
         let unpadded_bytes_per_row = 4 * width;
         let padded_bytes_per_row = align_to_256(unpadded_bytes_per_row);
+        console::log_1(
+            &format!(
+                "unpadded_bytes_per_row: {}, padded_bytes_per_row: {}",
+                unpadded_bytes_per_row, padded_bytes_per_row
+            )
+            .into(),
+        );
         if filesave_config.is_some() {
             let buffer_size = height * padded_bytes_per_row; // for RGBA8
             self.output_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -245,7 +258,14 @@ impl State {
             );
 
             self.queue.submit(Some(encoder.finish()));
-
+            let buffer_length = self.output_buffer.size();
+            console::log_1(
+                &format!(
+                    "Buffer length: {}, should be: {}",
+                    buffer_length, buffer_size
+                )
+                .into(),
+            );
             let buffer_slice = self.output_buffer.slice(..);
 
             let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
@@ -261,7 +281,7 @@ impl State {
                 if receiver.receive().await.unwrap().is_ok() {
                     let buffer_slice = output_buffer_clone.slice(..);
                     let data = buffer_slice.get_mapped_range();
-                    device_clone.poll(wgpu::PollType::Wait);
+                    let _ = device_clone.poll(wgpu::PollType::Wait);
                     let mut image_bytes = Vec::with_capacity((width * height * 4) as usize);
                     for y in 0..height {
                         let row_start = (y * padded_bytes_per_row) as usize;
@@ -278,7 +298,10 @@ impl State {
                         height,
                         filesave_config.unwrap().path,
                     );
+
+                    drop(data);
                     drop(buffer);
+
                     output_buffer_clone.unmap();
                 }
             });
@@ -286,23 +309,6 @@ impl State {
             self.queue.submit(Some(encoder.finish()));
             frame.present();
         }
-    }
-
-    pub fn next(&mut self) {
-        if self.img_index < (self.img_vec.len() - 1) as u32 {
-            self.img_index = self.img_index + 1;
-            console::log_1(
-                &format!(
-                    "Incremented index : {}, vector length: {}, incremented at {}",
-                    self.img_index,
-                    self.img_vec.len(),
-                    self.img_vec.len() - 1,
-                )
-                .into(),
-            );
-        } else {
-            console::log_1(&"Can't increment img_index, at the vector limit".into())
-        };
     }
 
     pub fn sender(&self) -> Sender<DynamicImage> {
@@ -326,7 +332,9 @@ impl State {
     pub fn set_index(&mut self, i: u32) {
         if i < self.img_vec.len() as u32 {
             self.img_index = i;
+            console::log_1(&format!("Set index to: {}", i).into());
         } else {
+            console::log_1(&format!("The index: {}, vec size: {}", i, self.img_vec.len()).into());
             console::log_1(&"The index is out of bounds".into());
         }
     }
