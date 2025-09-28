@@ -1,4 +1,4 @@
-use crate::components::draggable_panel::{DraggablePanel, DraggablePanelProps};
+use crate::components::cropbox::{CropBox};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::state::customlib::{Filesave_config, State};
@@ -45,6 +45,10 @@ pub fn ImageBoard() -> Element {
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
+    let mut canvas_el = use_signal(|| None::<web_sys::Element>);
+    let mut is_cropping = use_signal(|| false);
+    let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
+
 
     #[allow(unused)]
     use_effect(move || {
@@ -173,6 +177,7 @@ pub fn ImageBoard() -> Element {
             },
             onmouseup: move |_| {
                 is_dragging.set(false);
+                is_cropping.set(true);
             },
             onmousemove: move |evt| {
                 if is_dragging() && wgpu_on() {
@@ -237,36 +242,44 @@ pub fn ImageBoard() -> Element {
 
             match *wgpu_on.read() {
                 true => {
-
                     rsx!(
-                        DraggablePanel{
-                            title: String::from("Image"),
-                            header_visible: false,
-                            min_width: Some(10.0),
-                            min_height: Some(10.0),
-                            max_width: Some(viewport_size().0 as f64),
-                            max_height: Some(viewport_size().1 as f64),
-                            PanelContent:
-                                rsx! {
-                                    div { class: "image-inner",
-                                    canvas {
-                                        id: "image-board",
-                                        draggable: false,
-                                        width: format!("{}px",image_size().0),
-                                        height: format!("{}px",image_size().1),
-                                        style: format!(
-                                            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
-                                            translation().0,
-                                            translation().1,
-                                            zoom_signal() as f64 / 100.0
-                                        ),
-                                    },
+                        div { id: "image-inner",
+                            style: format!(
+                            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
+                                translation().0,
+                                translation().1,
+                                zoom_signal() as f64 / 100.0
+                            ),
+                            onmounted: move |_| {
+                                let image_inner = GLOBAL_WINDOW_HANDLE()
+                                    .document()
+                                    .unwrap()
+                                    .get_element_by_id("image-inner")
+                                    .expect("No image-inner element found");
+
+                                image_inner_el.set(Some(image_inner));
+                            },
+                            canvas {
+                                id: "image-board",
+                                draggable: false,
+                                width: format!("{}px",image_size().0),
+                                height: format!("{}px",image_size().1),
+                                onmounted: move |_| {
+                                    canvas_el.set(Some(GLOBAL_WINDOW_HANDLE()
+                                        .document()
+                                        .unwrap()
+                                        .get_element_by_id("image-board")
+                                        .expect("No canvas found")));
+                                },
+                            },
+                            if is_cropping() {
+                                CropBox { 
+                                    target_element: canvas_el,
+                                    parent: image_inner_el,
                                 }
                             }
                         }
-
-
-                )
+                    )
                 },
                 false => rsx!(p {class: "text",
                     "Drag and drop images here!"})
