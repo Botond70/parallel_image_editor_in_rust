@@ -1,6 +1,10 @@
 use dioxus::prelude::*;
+use image::imageops::crop;
 use crate::components::cropbox;
-use crate::utils::resizeable::{use_resizeable, ResizeType, ResizeState};
+use crate::utils::{
+    resizeable::{use_resizeable, ResizeType, ResizeState},
+    draggable::{use_draggable, DragState},
+};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use web_sys::console;
 
@@ -18,12 +22,13 @@ pub fn CropBox(props: CropBoxProps) -> Element {
 
     let mut cropbox = use_signal(|| None);
     let mut resize_state = use_resizeable(width, height, Some(50.0), Some(50.0), Some(width), Some(height), true, cropbox, props.parent.read().clone());
+    let mut drag_state = use_draggable(true, cropbox, props.parent.read().clone());
 
     let cropbox_style = use_memo(move || {
         format!(
                 "transform: translate({}px, {}px); width: {}px; height: {}px;",
-                resize_state.translation.read().0,
-                resize_state.translation.read().1,
+                resize_state.translation.read().0 + drag_state.translation.read().0,
+                resize_state.translation.read().1 + drag_state.translation.read().1,
                 resize_state.width.read(),
                 resize_state.height.read()
             )
@@ -74,9 +79,11 @@ pub fn CropBox(props: CropBoxProps) -> Element {
             div {
                 id: "crop-box-middle",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::Left));
+                    drag_state.is_dragging.set(true);
+                    drag_state.start_position.set((evt.client_coordinates().x, evt.client_coordinates().y));
+                },
+                onmouseup: move |_| {
+                    drag_state.is_dragging.set(false);
                 }
             },
             div {
