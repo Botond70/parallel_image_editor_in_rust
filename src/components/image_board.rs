@@ -121,8 +121,13 @@ pub fn ImageBoard() -> Element {
         if wgpu_on() && ready_signal() && width_signal() > 0 && height_signal() > 0 {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
+
                 wgpu_state.resize(width_signal(), height_signal());
                 console::log_1(&"Triggered from resize signal".into());
+                image_size.set((width_signal() as f64, height_signal() as f64));
+                console::log_1(
+                    &format!("image_size: {} x {}", image_size().0, image_size().1).into(),
+                );
                 wgpu_state.draw(false, None);
             }
         } else if width_signal() > 0 && height_signal() > 0 {
