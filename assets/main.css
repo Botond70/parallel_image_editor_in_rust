@@ -308,13 +308,28 @@ input::-moz-range-thumb {
     height: 100vh;
 }
 
-.image-inner {
+#image-inner {
     z-index: 1;
     display: inline-block;
     align-items: center;
     justify-content: center;
     width: auto;
     max-height: 75vh;
+}
+
+#image-crop-box-container {
+    min-width: 50px;
+    min-height: 50px;
+    border: 1px solid white;
+    position: absolute;
+    top: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+}
+
+#image-crop-box-container * {
+    border: 1px solid white;
 }
 
 #image-board {

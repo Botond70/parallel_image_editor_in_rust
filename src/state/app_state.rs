@@ -62,3 +62,12 @@ pub struct TestPanelVisibility {
 pub struct DragSignal {
     pub can_drag: Signal<bool>,
 }
+
+#[derive(Clone, Copy)]
+pub struct CropSignal {
+    pub visibility: Signal<bool>,
+    pub left: Signal<f32>,
+    pub right: Signal<f32>,
+    pub top: Signal<f32>,
+    pub bottom: Signal<f32>,
+}

@@ -6,7 +6,8 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-    DragSignal, GalleryState, HSVState, ImageVec, ImageZoom, NextImage, ResizeState,
+
+    CropSignal, DragSignal, GalleryState, HSVState, ImageVec, ImageZoom, NextImage, ResizeState,
     SideBarVisibility, TestPanelVisibility, WGPUSignal,
 };
 use dioxus::html::canvas::width;
@@ -47,9 +48,17 @@ pub fn App() -> Element {
 
     let can_drag = use_signal(|| false);
 
+
     let rs_width = use_signal(|| 800 as u32);
     let rs_height = use_signal(|| 600 as u32);
     let resize_panel_visible = use_signal(|| false);
+
+    let crop_panel_visibility = use_signal(|| false);
+    let left = use_signal(|| 0.0 as f32);
+    let right = use_signal(|| 0.0 as f32);
+    let top = use_signal(|| 0.0 as f32);
+    let bottom = use_signal(|| 0.0 as f32);
+
 
     use_context_provider(|| DragSignal { can_drag });
     use_context_provider(|| TestPanelVisibility {
@@ -83,10 +92,18 @@ pub fn App() -> Element {
         saturation,
         value,
     });
+
     use_context_provider(|| ResizeState {
         panel_visible: resize_panel_visible,
         width: rs_width,
         height: rs_height,
+
+    use_context_provider(|| CropSignal {
+        visibility: crop_panel_visibility,
+        left,
+        right,
+        top,
+        bottom,
     });
 
     rsx! {
