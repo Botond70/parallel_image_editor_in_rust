@@ -107,22 +107,33 @@ fn ResizePanel() -> Element {
     let widthval = imwidth();
     let mut imheight = use_context::<ResizeState>().height;
     let heightval = imheight();
+
     rsx! {
         DraggablePanel {
             title: String::from("Resize Image"),
             PanelContent:
                 rsx! {
-                    input { type: "text", value: "{widthval}", placeholder: "Width" , oninput: move |e| {
-                        if let Ok(parsed) = e.value().parse::<u32>() {
-                            imwidth.set(parsed);
+                    input {
+                        type: "text",
+                        value: "{widthval}",
+                        placeholder: "Width",
+                        oninput: move |e| {
+                            if let Ok(parsed) = e.value().parse::<u32>() {
+                                imwidth.set(parsed);
+                            }
                         }
-                    }}
+                    }
                     p { "x" }
-                    input { type: "text", value: "{heightval}", placeholder: "Height" , oninput: move |e| {
-                        if let Ok(parsed) = e.value().parse::<u32>() {
-                            imheight.set(parsed);
+                    input {
+                        type: "text",
+                        value: "{heightval}",
+                        placeholder: "Height",
+                        oninput: move |e| {
+                            if let Ok(parsed) = e.value().parse::<u32>() {
+                                imheight.set(parsed);
+                            }
                         }
-                    }}
+                    }
                 }
         }
     }
