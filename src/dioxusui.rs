@@ -97,7 +97,7 @@ pub fn App() -> Element {
         panel_visible: resize_panel_visible,
         width: rs_width,
         height: rs_height,
-
+    });
     use_context_provider(|| CropSignal {
         visibility: crop_panel_visibility,
         left,
