@@ -12,6 +12,7 @@ use web_sys::console;
 pub struct CropBoxProps {
     pub target_element: Signal<Option<web_sys::Element>>,
     pub parent: Signal<Option<web_sys::Element>>,
+    pub scale: Signal<i64>,
 }
 
 pub fn CropBox(props: CropBoxProps) -> Element {
@@ -23,14 +24,18 @@ pub fn CropBox(props: CropBoxProps) -> Element {
     let mut cropbox = use_signal(|| None);
     let mut resize_state = use_resizeable(width, height, Some(50.0), Some(50.0), Some(width), Some(height), true, cropbox, props.parent.read().clone());
     let mut drag_state = use_draggable(true, cropbox, props.parent.read().clone());
+    let mut img_scale = *props.scale.read() as f64/ 100.0;
 
     let cropbox_style = use_memo(move || {
+
+        console::log_1(&format!("xd: {:?}, {:?}", *resize_state.width.read(), *resize_state.height.read()).into());
         format!(
-                "transform: translate({}px, {}px); width: {}px; height: {}px;",
-                resize_state.translation.read().0 + drag_state.translation.read().0,
-                resize_state.translation.read().1 + drag_state.translation.read().1,
-                resize_state.width.read(),
-                resize_state.height.read()
+                "transform: translate({}px, {}px); width: {}px; height: {}px; scale({});",
+                resize_state.translation.read().0 / img_scale + drag_state.translation.read().0 / img_scale,
+                resize_state.translation.read().1 / img_scale + drag_state.translation.read().1 / img_scale,
+                *resize_state.width.read() / img_scale,  
+                *resize_state.height.read() / img_scale,
+                img_scale
             )
     });
 

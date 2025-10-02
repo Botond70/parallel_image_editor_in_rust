@@ -307,6 +307,7 @@ pub fn ImageBoard() -> Element {
                                 CropBox { 
                                     target_element: canvas_el,
                                     parent: image_inner_el,
+                                    scale: zoom_signal,
                                 }
                             }
                         }
