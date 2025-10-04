@@ -205,6 +205,7 @@ pub fn SideBar() -> Element {
 
     let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
     let mut test_panel_visibility = use_context::<TestPanelVisibility>().visibility;
+    let mut crop_panel_visibility = use_context::<CropSignal>().visibility;
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
@@ -220,6 +221,7 @@ pub fn SideBar() -> Element {
             button { class: if test_panel_visibility() { "btn on" } else { "btn" },
                 onclick: move |_| {
                     test_panel_visibility.set(!test_panel_visibility());
+                    crop_panel_visibility.set(!crop_panel_visibility());
                 },
                 img { class: "button-svg-container",
                     src: CROP_BUTTON_SVG

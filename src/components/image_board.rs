@@ -1,6 +1,6 @@
 use crate::components::cropbox::{CropBox};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{CropSignal, DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
@@ -46,7 +46,7 @@ pub fn ImageBoard() -> Element {
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
     let mut canvas_el = use_signal(|| None::<web_sys::Element>);
-    let mut is_cropping = use_signal(|| false);
+    let mut is_cropping = use_context::<CropSignal>().visibility;
     let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
 
 
@@ -177,7 +177,6 @@ pub fn ImageBoard() -> Element {
             },
             onmouseup: move |_| {
                 is_dragging.set(false);
-                is_cropping.set(true);
             },
             onmousemove: move |evt| {
                 if is_dragging() && wgpu_on() {
