@@ -25,6 +25,7 @@ pub struct ResizeState {
     pub width: Signal<f64>,
     pub height: Signal<f64>,
     pub translation: Signal<(f64, f64)>,
+    pub scale: Signal<f64>,
 }
 
 fn clamp_mouse_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<web_sys::Element>>, parent_element: &Option<Element>, resize_dir: ResizeType) -> Result<(), String> {
@@ -97,21 +98,22 @@ fn clamp_mouse_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<we
 /// 
 /// Will panic if `bound` is `true`, but `this_element` or `parent_element` are `None`.
 ///
-pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_height: Option<f64>, max_width: Option<f64>, max_height: Option<f64>, bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>) -> ResizeState {
+pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_height: Option<f64>, max_width: Option<f64>, max_height: Option<f64>, bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>, scale: f64) -> ResizeState {
     let mut resize_type: Signal<Option<ResizeType>> = use_signal(|| None);
     let mut last_resize_x = use_signal(|| 0.0);
     let mut last_resize_y = use_signal(|| 0.0);
     let mut width = use_signal(|| width);
     let mut height = use_signal(|| height);
     let mut translation = use_signal(|| (0.0, 0.0));
+    let mut scale = use_signal(|| scale);
 
     let resize_handle = move |event: MouseEvent| {
         if let Some(resize_dir) = *resize_type.read() {
             let start_x = last_resize_x();
             let start_y = last_resize_y();
-            let mut dx = event.client_x() as f64 - start_x;
-            let mut dy = event.client_y() as f64 - start_y;
-            
+            let mut dx = (event.client_x() as f64 - start_x) / scale();
+            let mut dy = (event.client_y() as f64 - start_y) / scale();
+
             let mut new_width = width();
             let mut new_height = height();
 
@@ -120,7 +122,7 @@ pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_heigh
             if bound {
                 match clamp_mouse_delta(&mut dx, &mut dy, &this_element, &parent_element, resize_dir) {
                     Ok(()) => {}
-                    Err(err) => { console::log_1(&format!("{:?}", err).into()); }
+                    Err(err) => { console::log_1(&format!("Error during clamp: {:?}", err).into()); }
                 }
             }
 
@@ -210,5 +212,6 @@ pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_heigh
         width,
         height,
         translation,
+        scale,
     }
 }

@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use image::imageops::crop;
 use crate::components::cropbox;
+use crate::state::app_state::ImageZoom;
 use crate::utils::{
     resizeable::{use_resizeable, ResizeType, ResizeState},
     draggable::{use_draggable, DragState},
@@ -20,17 +21,24 @@ pub fn CropBox(props: CropBoxProps) -> Element {
         props.target_element.read().as_ref().expect("No target element found").get_bounding_client_rect().height()
     );
 
+    let scale = use_context::<ImageZoom>().zoom;
+    let scale_value = scale() as f64 / 100.0;
     let mut cropbox = use_signal(|| None);
-    let mut resize_state = use_resizeable(width, height, Some(50.0), Some(50.0), Some(width), Some(height), true, cropbox, props.parent.read().clone());
-    let mut drag_state = use_draggable(true, cropbox, props.parent.read().clone());
+    let mut resize_state = use_resizeable(width / scale_value, height / scale_value, Some(50.0), Some(50.0), Some(width / scale_value), Some(height / scale_value), true, cropbox, props.parent.read().clone(), scale_value);
+    let mut drag_state = use_draggable(true, cropbox, props.parent.read().clone(), scale_value);
+
+    use_effect(move || {
+        resize_state.scale.set(scale() as f64 / 100.0);
+        drag_state.scale.set(scale() as f64 / 100.0);
+    });
 
     let cropbox_style = use_memo(move || {
         format!(
                 "transform: translate({}px, {}px); width: {}px; height: {}px;",
-                resize_state.translation.read().0 + drag_state.translation.read().0,
-                resize_state.translation.read().1 + drag_state.translation.read().1,
-                resize_state.width.read(),
-                resize_state.height.read()
+                (resize_state.translation.read().0 + drag_state.translation.read().0),
+                (resize_state.translation.read().1 + drag_state.translation.read().1),
+                *resize_state.width.read(),
+                *resize_state.height.read()
             )
     });
 

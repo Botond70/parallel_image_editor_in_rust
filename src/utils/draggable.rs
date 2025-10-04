@@ -8,6 +8,7 @@ pub struct DragState {
     pub start_position: Signal<(f64, f64)>,
     pub translation: Signal<(f64, f64)>,
     pub is_dragging: Signal<bool>,
+    pub scale: Signal<f64>,
 }
 
 fn clamp_drag_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<web_sys::Element>>, parent_element: &Option<Element>) -> Result<(), String> {
@@ -40,17 +41,18 @@ fn clamp_drag_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<web
     Ok(())
 }
 
-pub fn use_draggable(bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>) -> DragState {
+pub fn use_draggable(bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>, scale: f64) -> DragState {
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut start_position = use_signal(|| (0.0, 0.0));
     let is_dragging = use_signal(|| false);
+    let mut scale_signal = use_signal(|| scale);
 
     // mouse move handler for dragging an element
     let drag_handle = move |event: MouseEvent| {
         if is_dragging() {
             let (start_x, start_y) = start_position();
-            let mut dx = event.client_x() as f64 - start_x;
-            let mut dy = event.client_y() as f64 - start_y;
+            let mut dx = (event.client_x() as f64 - start_x) / scale_signal();
+            let mut dy = (event.client_y() as f64 - start_y) / scale_signal();
             
             if bound {
                 if let Err(err) = clamp_drag_delta(&mut dx, &mut dy, &this_element, &parent_element) {
@@ -109,5 +111,6 @@ pub fn use_draggable(bound: bool, this_element: Signal<Option<web_sys::Element>>
         start_position,
         translation,
         is_dragging,
+        scale: scale_signal,
     }
 }

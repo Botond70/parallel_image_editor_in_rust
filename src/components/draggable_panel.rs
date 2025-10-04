@@ -25,8 +25,9 @@ pub struct DraggablePanelProps {
 pub fn DraggablePanel(props: DraggablePanelProps) -> Element {
     let nonesignal = use_signal(|| Option::None);
     let default_offset = (100.0, 100.0);
-    let mut state = use_resizeable(500.0, 200.0, props.min_width, props.min_height, props.max_width, props.max_height, false, nonesignal, None);
-    let mut drag_state = use_draggable(false, nonesignal, None);
+    let default_scale = 1.0;
+    let mut state = use_resizeable(500.0, 200.0, props.min_width, props.min_height, props.max_width, props.max_height, false, nonesignal, None, default_scale);
+    let mut drag_state = use_draggable(false, nonesignal, None, default_scale);
 
     let panel_style = use_memo(move || {
         format!(
