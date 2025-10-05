@@ -1,10 +1,11 @@
-use crate::components::cropbox::{CropBox};
+use crate::components::cropbox::CropBox;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{
     DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState, WGPUSignal,
 };
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
+use crate::utils::upload_img::upload_img;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
@@ -37,25 +38,23 @@ pub fn ImageBoard() -> Element {
         (win_width.as_f64().unwrap(), win_height.as_f64().unwrap())
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
-    let mut image_size = use_signal(|| (0.0, 0.0));
+    let mut image_size = use_context::<ImageZoom>().img_size;
     let mut wgpu_on = use_context::<WGPUSignal>().signal;
     let mut next_img_signal = use_context::<NextImage>().count;
-    let mut draw_signal = use_signal(|| false);
-    let mut ready_signal = use_signal(|| false);
+    let mut ready_signal = use_context::<WGPUSignal>().ready_signal;
     let mut hue = use_context::<HSVState>().hue;
     let mut sat = use_context::<HSVState>().saturation;
     let mut val = use_context::<HSVState>().value;
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
-  
+
     let mut width_signal = use_context::<ResizeState>().width;
     let mut height_signal = use_context::<ResizeState>().height;
 
     let mut canvas_el = use_signal(|| None::<web_sys::Element>);
     let mut is_cropping = use_signal(|| false);
     let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
-
 
     #[allow(unused)]
     use_effect(move || {
@@ -226,51 +225,9 @@ pub fn ImageBoard() -> Element {
             },
             ondrop: move |evt| {
                 evt.prevent_default();
-
-                let file_engine = evt.files().unwrap();
-                let file_names = file_engine.files();
-
-                zoom_signal.set(100);
-
-                spawn(async move {
-                    wgpu_on.set(false);
-                    draw_signal.set(false);
-                    ready_signal.set(false);
-                    next_img_signal.set(0);
-                    let mut image_datas = VecDeque::<DynamicImage>::new();
-                    let mut image_datas_base64 = VecDeque::<String>::new();
-                    for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
-                        match load_from_memory(&bytes) {
-                            Ok(img) => {
-                                let max_width = 480;
-                                let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
-                                let rgb_img = resized.to_rgb8();
-                                let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
-                                let mut cursor = Cursor::new(Vec::new());
-                                if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
-                                    println!("Error during formatting: {err:?}");
-                                }
-
-                                let jpg_bytes = cursor.into_inner();
-                                let base64_str = base64_engine.encode(&jpg_bytes);
-
-                                image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
-                                image_datas.push_back(img);
-                            },
-                            Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
-                        }
-                    }}
-                    image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
-                    let mut img_vec = image_data_q();
-                    img_vec.append(&mut image_datas);
-                    image_data_q.set(img_vec);
-                    let mut img_vec_base64 = image_vector_base64();
-                    img_vec_base64.append(&mut image_datas_base64);
-                    image_vector_base64.set(img_vec_base64);
-                    wgpu_on.set(true);
-                });
-            },
-
+                upload_img(evt.files().unwrap());
+            }
+            ,
             match *wgpu_on.read() {
                 true => {
                     rsx!(
@@ -304,7 +261,7 @@ pub fn ImageBoard() -> Element {
                                 },
                             },
                             if is_cropping() {
-                                CropBox { 
+                                CropBox {
                                     target_element: canvas_el,
                                     parent: image_inner_el,
                                     scale: zoom_signal,

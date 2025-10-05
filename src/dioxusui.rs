@@ -6,7 +6,6 @@ use crate::components::{
     side_bar::SideBar,
 };
 use crate::state::app_state::{
-
     CropSignal, DragSignal, GalleryState, HSVState, ImageVec, ImageZoom, NextImage, ResizeState,
     SideBarVisibility, TestPanelVisibility, WGPUSignal,
 };
@@ -27,11 +26,13 @@ pub fn App() -> Element {
     let IMG_SCALE_LIMITS: Signal<(i64, i64)> = use_signal(|| (20, 3000));
     let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
     let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
+    let img_size = use_signal(|| (0.0, 0.0));
     let image_index = use_signal(|| 0 as usize);
     let img_next = use_signal(|| false);
     let img_iter = use_signal(|| 0 as u32);
 
     let wgpu_signal = use_signal(|| false);
+    let ready_signal = use_signal(|| false);
 
     let grid_size = use_signal(|| String::from("medium"));
 
@@ -48,7 +49,6 @@ pub fn App() -> Element {
 
     let can_drag = use_signal(|| false);
 
-
     let rs_width = use_signal(|| 800 as u32);
     let rs_height = use_signal(|| 600 as u32);
     let resize_panel_visible = use_signal(|| false);
@@ -58,7 +58,6 @@ pub fn App() -> Element {
     let right = use_signal(|| 0.0 as f32);
     let top = use_signal(|| 0.0 as f32);
     let bottom = use_signal(|| 0.0 as f32);
-
 
     use_context_provider(|| DragSignal { can_drag });
     use_context_provider(|| TestPanelVisibility {
@@ -70,12 +69,14 @@ pub fn App() -> Element {
     });
     use_context_provider(|| WGPUSignal {
         signal: wgpu_signal,
+        ready_signal: ready_signal,
         save_signal: save_signal,
     });
     use_context_provider(|| SideBarVisibility { state: visibility });
     use_context_provider(|| ImageZoom {
         zoom: img_scale,
         limits: IMG_SCALE_LIMITS,
+        img_size: img_size,
     });
     use_context_provider(|| NextImage {
         pressed: img_next,

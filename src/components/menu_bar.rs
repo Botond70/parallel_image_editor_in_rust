@@ -1,6 +1,7 @@
 use crate::{
     app_router::Route,
     state::app_state::{SideBarVisibility, WGPUSignal},
+    utils::upload_img::upload_img,
 };
 use dioxus::prelude::*;
 
@@ -21,7 +22,10 @@ pub fn MenuBar() -> Element {
             div { class: "dropdown-button-container",
                 button {class: "btn", "File" }
                 div { class: "dropdown-content",
-                    button { class: "btn", "Load" }
+                    label { class: "btn", "Load",
+                    input { class: "btn", r#type: "file", accept:"image/*", multiple: "true", onchange: move |evt| {
+                        upload_img(evt.files().unwrap());
+                    } , "Load" }},
                     button { onclick: saver, class: "btn", "Save as" }
                 }
             }

@@ -27,6 +27,10 @@ body,
     user-select: none;
 }
 
+input[type="file"] {
+    display: none;
+}
+
 .sidebar-container {
     display: flex;
     float: inline-start;
@@ -149,15 +153,16 @@ body,
 }
 
 input {
-    --color: white; /* active color of slider */
+    --color: white;
+    /* active color of slider */
     --line-thickness: 1px;
     --thumb-size: 15px;
 
     width: 360px;
     height: var(--thumb-size);
-    -webkit-appearance :none;
-    -moz-appearance :none;
-    appearance :none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     background: none;
     cursor: pointer;
     overflow: hidden;
@@ -230,7 +235,8 @@ input::-moz-range-thumb {
     row-gap: 2px;
 }
 
-.dropdown-content .btn, .sidebar-container .btn {
+.dropdown-content .btn,
+.sidebar-container .btn {
     width: 100%;
 }
 
