@@ -1,5 +1,6 @@
 use crate::{
     app_router::Route,
+    state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState},
     state::app_state::{SideBarVisibility, WGPUSignal},
     utils::upload_img::upload_img,
 };
@@ -24,7 +25,17 @@ pub fn MenuBar() -> Element {
                 div { class: "dropdown-content",
                     label { class: "btn", "Load",
                     input { class: "btn", r#type: "file", accept:"image/*", multiple: "true", onchange: move |evt| {
-                        upload_img(evt.files().unwrap());
+                        let files = evt.files().unwrap();
+                        upload_img(
+                            files,
+                            use_context::<ImageZoom>().img_size,
+                            use_context::<WGPUSignal>().signal,
+                            use_context::<NextImage>().count,
+                            use_context::<WGPUSignal>().ready_signal,
+                            use_context::<ImageZoom>().zoom,
+                            use_context::<ImageVec>().base64_vector,
+                            use_context::<ImageVec>().vector,
+                        );
                     } , "Load" }},
                     button { onclick: saver, class: "btn", "Save as" }
                 }

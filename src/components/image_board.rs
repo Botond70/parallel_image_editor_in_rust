@@ -225,7 +225,17 @@ pub fn ImageBoard() -> Element {
             },
             ondrop: move |evt| {
                 evt.prevent_default();
-                upload_img(evt.files().unwrap());
+                let files = evt.files().unwrap();
+                upload_img(
+                    files,
+                    use_context::<ImageZoom>().img_size,
+                    use_context::<WGPUSignal>().signal,
+                    use_context::<NextImage>().count,
+                    use_context::<WGPUSignal>().ready_signal,
+                    use_context::<ImageZoom>().zoom,
+                    use_context::<ImageVec>().base64_vector,
+                    use_context::<ImageVec>().vector,
+                );
             }
             ,
             match *wgpu_on.read() {

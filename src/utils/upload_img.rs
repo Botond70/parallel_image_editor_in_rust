@@ -3,6 +3,7 @@ use crate::state::app_state::{
 };
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
+use dioxus::hooks;
 use dioxus::html::FileEngine;
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
@@ -10,14 +11,16 @@ use std::collections::VecDeque;
 use std::io::Cursor;
 use std::sync::Arc;
 
-pub fn upload_img(file_engine: Arc<dyn FileEngine>) {
-    let mut image_size = use_context::<ImageZoom>().img_size;
-    let mut wgpu_on = use_context::<WGPUSignal>().signal;
-    let mut next_img_signal = use_context::<NextImage>().count;
-    let mut ready_signal = use_context::<WGPUSignal>().ready_signal;
-    let mut zoom_signal = use_context::<ImageZoom>().zoom;
-    let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
-    let mut image_data_q = use_context::<ImageVec>().vector;
+pub fn upload_img(
+    file_engine: Arc<dyn FileEngine>,
+    mut image_size: Signal<(f64, f64)>,
+    mut wgpu_on: Signal<bool>,
+    mut next_img_signal: Signal<u32>,
+    mut ready_signal: Signal<bool>,
+    mut zoom_signal: Signal<i64>,
+    mut image_vector_base64: Signal<VecDeque<String>>,
+    mut image_data_q: Signal<VecDeque<DynamicImage>>,
+) {
     let file_names = file_engine.files();
 
     zoom_signal.set(100);
