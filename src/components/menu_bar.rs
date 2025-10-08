@@ -24,19 +24,21 @@ pub fn MenuBar() -> Element {
                 button {class: "btn", "File" }
                 div { class: "dropdown-content",
                     label { class: "btn", "Load",
-                    input { class: "btn", r#type: "file", accept:"image/*", multiple: "true", onchange: move |evt| {
-                        let files = evt.files().unwrap();
-                        upload_img(
-                            files,
-                            use_context::<ImageZoom>().img_size,
-                            use_context::<WGPUSignal>().signal,
-                            use_context::<NextImage>().count,
-                            use_context::<WGPUSignal>().ready_signal,
-                            use_context::<ImageZoom>().zoom,
-                            use_context::<ImageVec>().base64_vector,
-                            use_context::<ImageVec>().vector,
-                        );
-                    } , "Load" }},
+                    input { class: "btn", r#type: "file", accept:"image/*", multiple: "true",
+                        onchange: move |evt| {
+                            let files = evt.files().unwrap();
+                            upload_img(
+                                files,
+                                use_context::<ImageZoom>().img_size,
+                                use_context::<WGPUSignal>().signal,
+                                use_context::<NextImage>().count,
+                                use_context::<WGPUSignal>().ready_signal,
+                                use_context::<ImageZoom>().zoom,
+                                use_context::<ImageVec>().base64_vector,
+                                use_context::<ImageVec>().vector,
+                            );
+                        },
+                    }},
                     button { onclick: saver, class: "btn", "Save as" }
                 }
             }

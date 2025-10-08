@@ -228,13 +228,13 @@ pub fn ImageBoard() -> Element {
                 let files = evt.files().unwrap();
                 upload_img(
                     files,
-                    use_context::<ImageZoom>().img_size,
-                    use_context::<WGPUSignal>().signal,
-                    use_context::<NextImage>().count,
-                    use_context::<WGPUSignal>().ready_signal,
-                    use_context::<ImageZoom>().zoom,
-                    use_context::<ImageVec>().base64_vector,
-                    use_context::<ImageVec>().vector,
+                    image_size,
+                    wgpu_on,
+                    next_img_signal,
+                    ready_signal,
+                    zoom_signal,
+                    image_vector_base64,
+                    image_data_q,
                 );
             }
             ,
