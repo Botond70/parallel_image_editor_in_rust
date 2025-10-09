@@ -12,6 +12,7 @@ pub struct SideBarVisibility {
 pub struct ImageZoom {
     pub zoom: Signal<i64>,
     pub limits: Signal<(i64, i64)>,
+    pub img_size: Signal<(f64, f64)>,
 }
 
 #[derive(Clone, Copy)]
@@ -29,6 +30,7 @@ pub struct ImageVec {
 #[derive(Clone, Copy)]
 pub struct WGPUSignal {
     pub signal: Signal<bool>,
+    pub ready_signal: Signal<bool>,
     pub save_signal: Signal<i64>,
 }
 
@@ -44,6 +46,13 @@ pub struct HSVState {
     pub hue: Signal<f32>,
     pub saturation: Signal<f32>,
     pub value: Signal<f32>,
+}
+
+#[derive(Clone, Copy)]
+pub struct ResizeState {
+    pub panel_visible: Signal<bool>,
+    pub width: Signal<u32>,
+    pub height: Signal<u32>,
 }
 
 #[derive(Clone, Copy)]

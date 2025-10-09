@@ -1,30 +1,55 @@
-use dioxus::prelude::*;
-use image::imageops::crop;
 use crate::components::cropbox;
+use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::ImageZoom;
 use crate::utils::{
-    resizeable::{use_resizeable, ResizeType, ResizeState},
-    draggable::{use_draggable, DragState},
+    draggable::{DragState, use_draggable},
+    resizeable::{ResizeState, ResizeType, use_resizeable},
 };
-use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
+use dioxus::prelude::*;
+use image::imageops::crop;
 use web_sys::console;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct CropBoxProps {
     pub target_element: Signal<Option<web_sys::Element>>,
     pub parent: Signal<Option<web_sys::Element>>,
+    pub scale: Signal<i64>,
 }
 
 pub fn CropBox(props: CropBoxProps) -> Element {
     let (width, height) = (
-        props.target_element.read().as_ref().expect("No target element found").get_bounding_client_rect().width(),
-        props.target_element.read().as_ref().expect("No target element found").get_bounding_client_rect().height()
+        props
+            .target_element
+            .read()
+            .as_ref()
+            .expect("No target element found")
+            .get_bounding_client_rect()
+            .width(),
+        props
+            .target_element
+            .read()
+            .as_ref()
+            .expect("No target element found")
+            .get_bounding_client_rect()
+            .height(),
     );
 
     let scale = use_context::<ImageZoom>().zoom;
     let scale_value = scale() as f64 / 100.0;
     let mut cropbox = use_signal(|| None);
-    let mut resize_state = use_resizeable(width / scale_value, height / scale_value, Some(50.0), Some(50.0), Some(width / scale_value), Some(height / scale_value), true, cropbox, props.parent.read().clone(), scale_value);
+    let mut img_scale = *props.scale.read() as f64 / 100.0;
+    let mut resize_state = use_resizeable(
+        width / scale_value,
+        height / scale_value,
+        Some(50.0),
+        Some(50.0),
+        Some(width / scale_value),
+        Some(height / scale_value),
+        true,
+        cropbox,
+        props.parent.read().clone(),
+        scale_value,
+    );
     let mut drag_state = use_draggable(true, cropbox, props.parent.read().clone(), scale_value);
 
     use_effect(move || {
@@ -33,13 +58,21 @@ pub fn CropBox(props: CropBoxProps) -> Element {
     });
 
     let cropbox_style = use_memo(move || {
-        format!(
-                "transform: translate({}px, {}px); width: {}px; height: {}px;",
-                (resize_state.translation.read().0 + drag_state.translation.read().0),
-                (resize_state.translation.read().1 + drag_state.translation.read().1),
+        console::log_1(
+            &format!(
+                "xd: {:?}, {:?}",
                 *resize_state.width.read(),
                 *resize_state.height.read()
             )
+            .into(),
+        );
+        format!(
+            "transform: translate({}px, {}px); width: {}px; height: {}px;",
+            (resize_state.translation.read().0 + drag_state.translation.read().0),
+            (resize_state.translation.read().1 + drag_state.translation.read().1),
+            *resize_state.width.read(),
+            *resize_state.height.read()
+        )
     });
 
     rsx! {
