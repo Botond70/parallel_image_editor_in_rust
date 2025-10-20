@@ -1,4 +1,4 @@
-use crate::components::draggable_panel::DraggablePanel;
+use crate::components::draggable_panel::DraggableResizeablePanel;
 use crate::state::app_state::{
     CropSignal, DragSignal, HSVState, SideBarVisibility, TestPanelVisibility,
 };
@@ -24,7 +24,7 @@ pub fn HSVPanel() -> Element {
     let mut val_slider_value = use_signal(|| 0.0);
 
     rsx! {
-        DraggablePanel {
+        DraggableResizeablePanel {
             title: String::from("HSV"),
             PanelContent:
                 rsx! {
@@ -90,7 +90,7 @@ pub fn HSVPanel() -> Element {
 #[component]
 fn TestPanel() -> Element {
     rsx! {
-        DraggablePanel {
+        DraggableResizeablePanel {
             title: String::from("Test Panel"),
             PanelContent:
                 rsx! {
@@ -112,7 +112,7 @@ fn CropPanel() -> Element {
     let mut right_slider_value = use_signal(|| 0.0);
 
     rsx! {
-        DraggablePanel {
+        DraggableResizeablePanel {
             title: String::from("Crop"),
             PanelContent:
                 rsx! {

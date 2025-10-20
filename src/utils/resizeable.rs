@@ -18,6 +18,7 @@ pub enum ResizeType {
 }
 
 /// Struct for handling the values in [`use_resizeable`].
+#[derive(Clone, Copy, PartialEq)]
 pub struct ResizeState {
     pub last_resize_x: Signal<f64>,
     pub last_resize_y: Signal<f64>,

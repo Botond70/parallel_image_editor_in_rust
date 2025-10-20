@@ -4,6 +4,7 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use web_sys::{Element, MouseEvent, console};
 
+#[derive(Clone, Copy, PartialEq)]
 pub struct DragState {
     pub start_position: Signal<(f64, f64)>,
     pub translation: Signal<(f64, f64)>,
