@@ -1,4 +1,4 @@
-use crate::components::draggable_panel::DraggableResizeablePanel;
+use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
 use crate::state::app_state::{
     CropSignal, DragSignal, HSVState, SideBarVisibility, TestPanelVisibility,
 };
