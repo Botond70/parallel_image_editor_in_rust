@@ -1,10 +1,7 @@
 use crate::app_router::Route;
 use crate::state::app_state::{GalleryState, ImageVec};
-use dioxus::html::col;
-use dioxus::html::g::dangerous_inner_html;
 use web_sys::console;
 use dioxus::prelude::*;
-use image::GenericImageView;
 const BACK_BUTTON: Asset = asset!("/assets/back-button.svg");
 
 const GRID_SIZE_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='size-6'>
@@ -61,7 +58,6 @@ fn GalleryHeader() -> Element {
 #[component]
 pub fn Gallery() -> Element {
     let img_vec_base64 = use_context::<ImageVec>().base64_vector;
-    let img_vec = use_context::<ImageVec>().vector;
     let mut curr_index = use_context::<ImageVec>().curr_image_index;
     let grid_size = use_context::<GalleryState>().grid_size;
     let img_vector = img_vec_base64();

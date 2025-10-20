@@ -26,7 +26,6 @@ pub fn App() -> Element {
     let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
     let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
     let image_index = use_signal(|| 0 as usize);
-    let img_next = use_signal(|| false);
     let img_iter = use_signal(|| 0 as u32);
 
     let wgpu_signal = use_signal(|| false);
@@ -70,7 +69,6 @@ pub fn App() -> Element {
         limits: IMG_SCALE_LIMITS,
     });
     use_context_provider(|| NextImage {
-        pressed: img_next,
         count: img_iter,
     });
     use_context_provider(|| ImageVec {

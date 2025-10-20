@@ -6,7 +6,6 @@ use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::html::g::{scale, transform_origin};
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::cell::RefCell;
@@ -22,10 +21,10 @@ pub fn ImageBoard() -> Element {
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
     let mut image_data_q = use_context::<ImageVec>().vector;
     let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
-    let mut curr_index = use_context::<ImageVec>().curr_image_index;
+    let curr_index = use_context::<ImageVec>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
-    let mut can_drag = use_context::<DragSignal>().can_drag;
+    let can_drag = use_context::<DragSignal>().can_drag;
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
@@ -46,7 +45,7 @@ pub fn ImageBoard() -> Element {
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
     let mut canvas_el = use_signal(|| None::<web_sys::Element>);
-    let mut is_cropping = use_context::<CropSignal>().visibility;
+    let is_cropping = use_context::<CropSignal>().visibility;
     let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
 
 
@@ -85,7 +84,7 @@ pub fn ImageBoard() -> Element {
     });
 
     use_effect(move || {
-        // track hue
+        // track hue, saturation, and value
         let hue = hue();
         let saturation = sat();
         let value = val();

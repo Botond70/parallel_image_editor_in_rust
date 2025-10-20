@@ -12,6 +12,7 @@ pub struct CropBoxProps {
     pub parent: Signal<Option<web_sys::Element>>,
 }
 
+#[component]
 pub fn CropBox(props: CropBoxProps) -> Element {
     let (width, height) = (
         props.target_element.read().as_ref().expect("No target element found").get_bounding_client_rect().width(),

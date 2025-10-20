@@ -16,7 +16,6 @@ pub struct ImageZoom {
 
 #[derive(Clone, Copy)]
 pub struct NextImage {
-    pub pressed: Signal<bool>,
     pub count: Signal<u32>,
 }
 #[derive(Clone, Copy)]

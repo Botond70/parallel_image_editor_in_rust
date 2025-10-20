@@ -46,7 +46,7 @@ pub fn use_draggable(bound: bool, this_element: Signal<Option<web_sys::Element>>
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut start_position = use_signal(|| (0.0, 0.0));
     let is_dragging = use_signal(|| false);
-    let mut scale_signal = use_signal(|| scale);
+    let scale_signal = use_signal(|| scale);
 
     // mouse move handler for dragging an element
     let drag_handle = move |event: MouseEvent| {

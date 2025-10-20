@@ -3,10 +3,6 @@ use crate::state::app_state::{
     CropSignal, DragSignal, HSVState, SideBarVisibility, TestPanelVisibility,
 };
 use dioxus::prelude::*;
-use std::rc::Rc;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::prelude::Closure;
-use web_sys::{MouseEvent, console, window};
 
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
