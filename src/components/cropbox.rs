@@ -1,13 +1,10 @@
 use dioxus::prelude::*;
-use image::imageops::crop;
-use crate::components::cropbox;
 use crate::state::app_state::ImageZoom;
 use crate::utils::{
-    resizeable::{use_resizeable, ResizeType, ResizeState},
-    draggable::{use_draggable, DragState},
+    resizeable::{use_resizeable, ResizeType},
+    draggable::{use_draggable},
 };
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use web_sys::console;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct CropBoxProps {
@@ -42,46 +39,48 @@ pub fn CropBox(props: CropBoxProps) -> Element {
             )
     });
 
-    rsx! {
-        div { id: "image-crop-box-container",
-            style: cropbox_style,
-            onmounted: move |evt| {
-                cropbox.set(Some(GLOBAL_WINDOW_HANDLE()
+    let mut handle_onmount = move || {
+        cropbox.set(Some(GLOBAL_WINDOW_HANDLE()
                     .document()
                     .unwrap()
                     .get_element_by_id("image-crop-box-container")
                     .expect("Couldn't find image-crop-box-container")));
+    };
+
+    let mut handle_resize = move |evt: Event<MouseData>, resize_direction: Option<ResizeType>| {
+        resize_state.last_resize_x.set(evt.client_coordinates().x);
+        resize_state.last_resize_y.set(evt.client_coordinates().y);
+        resize_state.resize_direction.set(resize_direction);
+    };
+
+    rsx! {
+        div { id: "image-crop-box-container",
+            style: cropbox_style,
+            onmounted: move |_| {
+                handle_onmount();
             },
             div {
                 id: "crop-box-top-left",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::TopLeft));
+                    handle_resize(evt, Some(ResizeType::TopLeft));
                 }
             },
             div {
                 id: "crop-box-top",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::Top));
+                    handle_resize(evt, Some(ResizeType::Top));
                 }
             },
             div {
                 id: "crop-box-top-right",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::TopRight));
+                    handle_resize(evt, Some(ResizeType::TopRight));
                 }
             },
             div {
                 id: "crop-box-left",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::Left));
+                    handle_resize(evt, Some(ResizeType::Left));
                 }
             },
             div {
@@ -97,33 +96,25 @@ pub fn CropBox(props: CropBoxProps) -> Element {
             div {
                 id: "crop-box-right",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::Right));
+                    handle_resize(evt, Some(ResizeType::Right));
                 }
             },
             div {
                 id: "crop-box-bottom-left",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::BottomLeft));
+                    handle_resize(evt, Some(ResizeType::BottomLeft));
                 }
             },
             div {
                 id: "crop-box-bottom",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::Bottom));
+                    handle_resize(evt, Some(ResizeType::Bottom));
                 }
             },
             div {
                 id: "crop-box-bottom-right",
                 onmousedown: move |evt| {
-                    resize_state.last_resize_x.set(evt.client_coordinates().x);
-                    resize_state.last_resize_y.set(evt.client_coordinates().y);
-                    resize_state.resize_direction.set(Some(ResizeType::BottomRight));
+                    handle_resize(evt, Some(ResizeType::BottomRight));
                 }
             }
         }
