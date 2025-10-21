@@ -18,6 +18,7 @@ pub enum ResizeType {
 }
 
 /// Struct for handling the values in [`use_resizeable`].
+#[derive(Clone, Copy, PartialEq)]
 pub struct ResizeState {
     pub last_resize_x: Signal<f64>,
     pub last_resize_y: Signal<f64>,
@@ -105,7 +106,7 @@ pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_heigh
     let mut width = use_signal(|| width);
     let mut height = use_signal(|| height);
     let mut translation = use_signal(|| (0.0, 0.0));
-    let mut scale = use_signal(|| scale);
+    let scale = use_signal(|| scale);
 
     let resize_handle = move |event: MouseEvent| {
         if let Some(resize_dir) = *resize_type.read() {

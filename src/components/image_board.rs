@@ -1,16 +1,12 @@
 use crate::components::cropbox::CropBox;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{
-    CropSignal, DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState, WGPUSignal,
-};
+use crate::state::app_state::{HSVState, ImageState, SideBarState, WGPUSignal, ResizeState};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::upload_img::upload_img;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::html::canvas::width;
-use dioxus::html::g::{scale, transform_origin};
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::cell::RefCell;
@@ -21,15 +17,15 @@ use web_sys::{console, window};
 
 #[component]
 pub fn ImageBoard() -> Element {
-    let mut zoom_signal = use_context::<ImageZoom>().zoom;
-    let zoom_limits = use_context::<ImageZoom>().limits;
+    let mut zoom_signal = use_context::<ImageState>().zoom;
+    let zoom_limits = use_context::<ImageState>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
-    let mut image_data_q = use_context::<ImageVec>().vector;
-    let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
-    let mut curr_index = use_context::<ImageVec>().curr_image_index;
+    let mut image_data_q = use_context::<ImageState>().image_vector;
+    let mut image_vector_base64 = use_context::<ImageState>().base64_vector;
+    let curr_index = use_context::<ImageState>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
-    let mut can_drag = use_context::<DragSignal>().can_drag;
+    let can_drag = use_context::<SideBarState>().is_dragging;
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
@@ -38,10 +34,10 @@ pub fn ImageBoard() -> Element {
         (win_width.as_f64().unwrap(), win_height.as_f64().unwrap())
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
-    let mut image_size = use_context::<ImageZoom>().img_size;
+    let mut image_size = use_context::<ImageState>().img_size;
     let mut wgpu_on = use_context::<WGPUSignal>().signal;
-    let mut next_img_signal = use_context::<NextImage>().count;
     let mut ready_signal = use_context::<WGPUSignal>().ready_signal;
+    let mut draw_signal = use_signal(|| false);
     let mut hue = use_context::<HSVState>().hue;
     let mut sat = use_context::<HSVState>().saturation;
     let mut val = use_context::<HSVState>().value;
@@ -51,10 +47,6 @@ pub fn ImageBoard() -> Element {
 
     let mut width_signal = use_context::<ResizeState>().width;
     let mut height_signal = use_context::<ResizeState>().height;
-
-    let mut canvas_el = use_signal(|| None::<web_sys::Element>);
-    let mut is_cropping = use_context::<CropSignal>().visibility;
-    let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
 
     #[allow(unused)]
     use_effect(move || {
@@ -94,10 +86,10 @@ pub fn ImageBoard() -> Element {
     });
 
     use_effect(move || {
-        // track hue
-        let _hue = hue();
-        let _saturation = sat();
-        let _value = val();
+        // track hue, saturation, and value
+        let hue = hue();
+        let saturation = sat();
+        let value = val();
 
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
@@ -142,64 +134,126 @@ pub fn ImageBoard() -> Element {
         }
     });
 
+    let mut handle_wheel = move |evt: Event<WheelData>| {
+        evt.prevent_default();
+
+        let delta = get_scroll_value(evt.delta());
+
+        let old_scale = zoom_signal() as f64 / 100.0;
+        let new_scale = if delta > 0.0 {
+            (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
+        } else {
+            (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
+        };
+
+        // check if zoom is at limit
+        let new_zoom = (new_scale * 100.0).round() as i64;
+        if new_zoom == zoom_signal() {
+            return;
+        }
+
+        let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
+        let rect = canvas_el.get_bounding_client_rect();
+        let rect_left = rect.left();
+        let rect_top = rect.top();
+
+        let client_x = evt.coordinates().client().x;
+        let client_y = evt.coordinates().client().y;
+
+        let (tx, ty) = translation();
+
+        // calculate the position of the mouse relative to our canvas
+        let local_trans_x = client_x - rect_left;
+        let local_trans_y = client_y - rect_top;
+
+        // calculate the new translation, taking scale into account
+        let ratio = new_scale / old_scale;
+        let new_tx = tx + (1.0 - ratio) * local_trans_x;
+        let new_ty = ty + (1.0 - ratio) * local_trans_y;
+
+        // clamp to viewport using new scale
+        let (clamped_tx, clamped_ty) = clamp_translate_value(
+            new_tx,
+            new_ty,
+            viewport_size(),
+            (image_size().0 * new_scale, image_size().1 * new_scale),
+        );
+
+        translation.set((clamped_tx, clamped_ty));
+        zoom_signal.set(new_zoom);
+    };
+
+    let mut handle_drag = move |evt: Event<MouseData>| {
+        is_dragging.set(true);
+        start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+        viewport_size.set(get_viewport_size());
+    };
+
+    let mut handle_mousemove = move |evt: Event<MouseData>| {
+        let (start_x, start_y) = (start_position().0, start_position().1);
+        let dx = evt.coordinates().client().x - start_x;
+        let dy = evt.coordinates().client().y - start_y;
+        start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+        let (tx, ty) = translation();
+        let clamped_translation = clamp_translate_value(tx + dx, ty + dy, viewport_size(), (image_size().0 * scale_value, image_size().1 * scale_value));
+        translation.set((clamped_translation.0, clamped_translation.1));
+    };
+
+    let mut handle_ondrop = move |evt: Event<DragData>| {
+        let file_engine = evt.files().unwrap();
+        let file_names = file_engine.files();
+
+        zoom_signal.set(100);
+
+        spawn(async move {
+            wgpu_on.set(false);
+            draw_signal.set(false);
+            ready_signal.set(false);
+            let mut image_datas = VecDeque::<DynamicImage>::new();
+            let mut image_datas_base64 = VecDeque::<String>::new();
+            for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
+                match load_from_memory(&bytes) {
+                    Ok(img) => {
+                        let max_width = 480;
+                        let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
+                        let rgb_img = resized.to_rgb8();
+                        let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
+                        let mut cursor = Cursor::new(Vec::new());
+                        if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
+                            println!("Error during formatting: {err:?}");
+                        }
+
+                        let jpg_bytes = cursor.into_inner();
+                        let base64_str = base64_engine.encode(&jpg_bytes);
+
+                        image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
+                        image_datas.push_back(img);
+                    },
+                    Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
+                }
+            }}
+            image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
+            let mut img_vec = image_data_q();
+            img_vec.append(&mut image_datas);
+            image_data_q.set(img_vec);
+            let mut img_vec_base64 = image_vector_base64();
+            img_vec_base64.append(&mut image_datas_base64);
+            image_vector_base64.set(img_vec_base64);
+            wgpu_on.set(true);
+        });
+    };
+
     rsx! {
         div { class: "image-container",
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
                 if wgpu_on() {
-                    evt.prevent_default();
-
-                    let delta = get_scroll_value(evt.delta());
-
-                    let old_scale = zoom_signal() as f64 / 100.0;
-                    let new_scale = if delta > 0.0 {
-                        (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
-                    } else {
-                        (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
-                    };
-
-                    // check if zoom is at limit
-                    let new_zoom = (new_scale * 100.0).round() as i64;
-                    if new_zoom == zoom_signal() {
-                        return;
-                    }
-
-                    let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
-                    let rect = canvas_el.get_bounding_client_rect();
-                    let rect_left = rect.left();
-                    let rect_top = rect.top();
-
-                    let client_x = evt.coordinates().client().x;
-                    let client_y = evt.coordinates().client().y;
-
-                    let (tx, ty) = translation();
-
-                    // calculate the position of the mouse relative to our canvas
-                    let local_trans_x = client_x - rect_left;
-                    let local_trans_y = client_y - rect_top;
-
-                    // calculate the new translation, taking scale into account
-                    let ratio = new_scale / old_scale;
-                    let new_tx = tx + (1.0 - ratio) * local_trans_x;
-                    let new_ty = ty + (1.0 - ratio) * local_trans_y;
-
-                    // clamp to viewport using new scale
-                    let (clamped_tx, clamped_ty) = clamp_translate_value(
-                        new_tx,
-                        new_ty,
-                        viewport_size(),
-                        (image_size().0 * new_scale, image_size().1 * new_scale),
-                    );
-
-                    translation.set((clamped_tx, clamped_ty));
-                    zoom_signal.set(new_zoom);
+                    handle_wheel(evt);
                 }
             },
             onmousedown: move |evt| {
                 if can_drag() {
-                    is_dragging.set(true);
-                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                    viewport_size.set(get_viewport_size());
+                    handle_drag(evt);
                 }
             },
             onmouseleave: move |_| {
@@ -210,13 +264,7 @@ pub fn ImageBoard() -> Element {
             },
             onmousemove: move |evt| {
                 if is_dragging() && wgpu_on() {
-                    let (start_x, start_y) = (start_position().0, start_position().1);
-                    let dx = evt.coordinates().client().x - start_x;
-                    let dy = evt.coordinates().client().y - start_y;
-                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                    let (tx, ty) = translation();
-                    let clamped_translation = clamp_translate_value(tx + dx, ty + dy, viewport_size(), (image_size().0 * scale_value, image_size().1 * scale_value));
-                    translation.set((clamped_translation.0, clamped_translation.1));
+                    handle_mousemove(evt);
                 }
             },
             ondragover: move |evt| {
@@ -224,63 +272,71 @@ pub fn ImageBoard() -> Element {
             },
             ondrop: move |evt| {
                 evt.prevent_default();
-                let files = evt.files().unwrap();
-                upload_img(
-                    files,
-                    image_size,
-                    wgpu_on,
-                    next_img_signal,
-                    ready_signal,
-                    zoom_signal,
-                    image_vector_base64,
-                    image_data_q,
-                );
-            }
-            ,
+
+                handle_ondrop(evt);
+            },
             match *wgpu_on.read() {
                 true => {
                     rsx!(
-                        div { id: "image-inner",
-                            style: format!(
-                            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
-                                translation().0,
-                                translation().1,
-                                zoom_signal() as f64 / 100.0
-                            ),
-                            onmounted: move |_| {
-                                let image_inner = GLOBAL_WINDOW_HANDLE()
-                                    .document()
-                                    .unwrap()
-                                    .get_element_by_id("image-inner")
-                                    .expect("No image-inner element found");
-
-                                image_inner_el.set(Some(image_inner));
-                            },
-                            canvas {
-                                id: "image-board",
-                                draggable: false,
-                                width: format!("{}px",image_size().0),
-                                height: format!("{}px",image_size().1),
-                                onmounted: move |_| {
-                                    canvas_el.set(Some(GLOBAL_WINDOW_HANDLE()
-                                        .document()
-                                        .unwrap()
-                                        .get_element_by_id("image-board")
-                                        .expect("No canvas found")));
-                                },
-                            },
-                            if is_cropping() {
-                                CropBox {
-                                    target_element: canvas_el,
-                                    parent: image_inner_el,
-                                    scale: zoom_signal,
-                                }
-                            }
+                        Canvas {
+                            translation: translation,
+                            zoom: zoom_signal,
+                            image_size: image_size,
                         }
                     )
                 },
                 false => rsx!(p {class: "text",
                     "Drag and drop images here!"})
+            }
+        }
+    }
+}
+
+#[component]
+fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal<(f64, f64)>) -> Element {
+    let mut canvas_el = use_signal(|| None::<web_sys::Element>);
+    let is_cropping = use_context::<SideBarState>().is_cropping;
+    let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
+
+    let canvas_style = use_memo(move || {
+        format!(
+            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
+                translation().0,
+                translation().1,
+                zoom() as f64 / 100.0
+        )
+    });
+
+    rsx! {
+        div { id: "image-inner",
+            style: canvas_style,
+            onmounted: move |_| {
+                let image_inner = GLOBAL_WINDOW_HANDLE()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("image-inner")
+                    .expect("No image-inner element found");
+
+                image_inner_el.set(Some(image_inner));
+            },
+            canvas {
+                id: "image-board",
+                draggable: false,
+                width: format!("{}px", image_size().0),
+                height: format!("{}px", image_size().1),
+                onmounted: move |_| {
+                    canvas_el.set(Some(GLOBAL_WINDOW_HANDLE()
+                        .document()
+                        .unwrap()
+                        .get_element_by_id("image-board")
+                        .expect("No canvas found")));
+                },
+            },
+            if is_cropping() {
+                CropBox { 
+                    target_element: canvas_el,
+                    parent: image_inner_el,
+                }
             }
         }
     }

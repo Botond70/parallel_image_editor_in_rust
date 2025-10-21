@@ -1,6 +1,3 @@
-use crate::state::app_state::{
-    DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState, WGPUSignal,
-};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::hooks;
@@ -15,7 +12,6 @@ pub fn upload_img(
     file_engine: Arc<dyn FileEngine>,
     mut image_size: Signal<(f64, f64)>,
     mut wgpu_on: Signal<bool>,
-    mut next_img_signal: Signal<u32>,
     mut ready_signal: Signal<bool>,
     mut zoom_signal: Signal<i64>,
     mut image_vector_base64: Signal<VecDeque<String>>,
@@ -28,7 +24,6 @@ pub fn upload_img(
     spawn(async move {
         wgpu_on.set(false);
         ready_signal.set(false);
-        next_img_signal.set(0);
         let mut image_datas = VecDeque::<DynamicImage>::new();
         let mut image_datas_base64 = VecDeque::<String>::new();
         for file_name in file_names {

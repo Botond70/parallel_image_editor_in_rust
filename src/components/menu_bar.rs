@@ -1,16 +1,16 @@
 use crate::{
     app_router::Route,
-    state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, ResizeState},
-    state::app_state::{SideBarVisibility, WGPUSignal},
+    state::app_state::{ImageState, ResizeState, SideBarState, WGPUSignal},
     utils::upload_img::upload_img,
 };
 use dioxus::prelude::*;
 
 #[component]
 pub fn MenuBar() -> Element {
-    let curr_state = *use_context::<SideBarVisibility>().state.read();
-    let mut toggle_signal = use_context::<SideBarVisibility>().state;
-    let toggle = move |_| toggle_signal.set(!curr_state);
+    let curr_state = *use_context::<SideBarState>().sidebar_is_visible.read();
+    let toggle = move |_| {
+        use_context::<SideBarState>().sidebar_is_visible.set(!curr_state);
+    };
 
     let curr_save = *use_context::<WGPUSignal>().save_signal.read();
     let mut saver_signal = use_context::<WGPUSignal>().save_signal;
@@ -29,13 +29,12 @@ pub fn MenuBar() -> Element {
                             let files = evt.files().unwrap();
                             upload_img(
                                 files,
-                                use_context::<ImageZoom>().img_size,
+                                use_context::<ImageState>().img_size,
                                 use_context::<WGPUSignal>().signal,
-                                use_context::<NextImage>().count,
                                 use_context::<WGPUSignal>().ready_signal,
-                                use_context::<ImageZoom>().zoom,
-                                use_context::<ImageVec>().base64_vector,
-                                use_context::<ImageVec>().vector,
+                                use_context::<ImageState>().zoom,
+                                use_context::<ImageState>().base64_vector,
+                                use_context::<ImageState>().image_vector,
                             );
                         },
                     }},

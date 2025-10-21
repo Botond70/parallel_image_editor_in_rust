@@ -1,16 +1,12 @@
 use crate::state::app_state::{CropSignal, HSVState};
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
-use dioxus::html::output;
-use dioxus::html::u::is;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::{ImageBuffer, Rgba};
 use std::collections::VecDeque;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{self, RecvError};
+use std::sync::mpsc::{self};
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread::spawn;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::*;
