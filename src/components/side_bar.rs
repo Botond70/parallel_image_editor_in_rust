@@ -3,7 +3,6 @@ use crate::state::app_state::{
     CropSignal, HSVState, SideBarState
 };
 use dioxus::prelude::*;
-use image::imageops::crop;
 
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");

@@ -3,9 +3,6 @@ use crate::components::{
     footer::FootBar, image_board::ImageBoard, menu_bar::MenuBar,
     side_bar::SideBar,
 };
-use crate::state::app_state::{
-    WGPUSignal,
-};
 use crate::state::providers::{provide_crop_state, provide_hsv_state, provide_image_state, provide_sidebar_state, provide_wgpu_state};
 use dioxus::prelude::*;
 use web_sys::{Window, window};
@@ -23,10 +20,8 @@ pub fn App() -> Element {
     provide_image_state();
 
     rsx! {
-
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
         Router::<Route> {}
-
     }
 }
 
