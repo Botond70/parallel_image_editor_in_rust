@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::state::app_state::ImageZoom;
+use crate::state::app_state::ImageState;
 use crate::utils::{
     resizeable::{use_resizeable, ResizeType},
     draggable::{use_draggable},
@@ -19,7 +19,7 @@ pub fn CropBox(props: CropBoxProps) -> Element {
         props.target_element.read().as_ref().expect("No target element found").get_bounding_client_rect().height()
     );
 
-    let scale = use_context::<ImageZoom>().zoom;
+    let scale = use_context::<ImageState>().zoom;
     let scale_value = scale() as f64 / 100.0;
     let mut cropbox = use_signal(|| None);
     let mut resize_state = use_resizeable(width / scale_value, height / scale_value, Some(50.0), Some(50.0), Some(width / scale_value), Some(height / scale_value), true, cropbox, props.parent.read().clone(), scale_value);

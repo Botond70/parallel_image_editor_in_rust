@@ -1,6 +1,6 @@
 use crate::components::cropbox::{CropBox};
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{CropSignal, DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{HSVState, ImageState, SideBarState, WGPUSignal};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
@@ -16,15 +16,15 @@ use web_sys::{console, window};
 
 #[component]
 pub fn ImageBoard() -> Element {
-    let mut zoom_signal = use_context::<ImageZoom>().zoom;
-    let zoom_limits = use_context::<ImageZoom>().limits;
+    let mut zoom_signal = use_context::<ImageState>().zoom;
+    let zoom_limits = use_context::<ImageState>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
-    let mut image_data_q = use_context::<ImageVec>().vector;
-    let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
-    let curr_index = use_context::<ImageVec>().curr_image_index;
+    let mut image_data_q = use_context::<ImageState>().image_vector;
+    let mut image_vector_base64 = use_context::<ImageState>().base64_vector;
+    let curr_index = use_context::<ImageState>().curr_image_index;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
-    let can_drag = use_context::<DragSignal>().can_drag;
+    let can_drag = use_context::<SideBarState>().is_dragging;
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
@@ -35,7 +35,6 @@ pub fn ImageBoard() -> Element {
     let mut viewport_size = use_signal(|| get_viewport_size());
     let mut image_size = use_signal(|| (0.0, 0.0));
     let mut wgpu_on = use_context::<WGPUSignal>().signal;
-    let mut next_img_signal = use_context::<NextImage>().count;
     let mut draw_signal = use_signal(|| false);
     let mut ready_signal = use_signal(|| false);
     let mut hue = use_context::<HSVState>().hue;
@@ -182,7 +181,6 @@ pub fn ImageBoard() -> Element {
             wgpu_on.set(false);
             draw_signal.set(false);
             ready_signal.set(false);
-            next_img_signal.set(0);
             let mut image_datas = VecDeque::<DynamicImage>::new();
             let mut image_datas_base64 = VecDeque::<String>::new();
             for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
@@ -269,15 +267,15 @@ pub fn ImageBoard() -> Element {
 #[component]
 fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal<(f64, f64)>) -> Element {
     let mut canvas_el = use_signal(|| None::<web_sys::Element>);
-    let is_cropping = use_context::<CropSignal>().visibility;
+    let is_cropping = use_context::<SideBarState>().is_cropping;
     let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
 
     let canvas_style = use_memo(move || {
         format!(
             "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
-                translation.read().0,
-                translation.read().1,
-                *zoom.read() as f64 / 100.0
+                translation().0,
+                translation().1,
+                zoom() as f64 / 100.0
         )
     });
 
@@ -296,8 +294,8 @@ fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal
             canvas {
                 id: "image-board",
                 draggable: false,
-                width: format!("{}px", image_size.read().0),
-                height: format!("{}px", image_size.read().1),
+                width: format!("{}px", image_size().0),
+                height: format!("{}px", image_size().1),
                 onmounted: move |_| {
                     canvas_el.set(Some(GLOBAL_WINDOW_HANDLE()
                         .document()

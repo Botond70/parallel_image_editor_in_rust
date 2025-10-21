@@ -1,8 +1,9 @@
 use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
 use crate::state::app_state::{
-    CropSignal, DragSignal, HSVState, SideBarVisibility, TestPanelVisibility,
+    CropSignal, HSVState, SideBarState
 };
 use dioxus::prelude::*;
+use image::imageops::crop;
 
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
@@ -191,8 +192,8 @@ fn CropPanel() -> Element {
 
 #[component]
 pub fn SideBar() -> Element {
-    let is_visible = *use_context::<SideBarVisibility>().state.read();
-    let mut image_is_draggable = use_context::<DragSignal>().can_drag;
+    let is_visible = *use_context::<SideBarState>().sidebar_is_visible.read();
+    let mut image_is_draggable = use_context::<SideBarState>().is_dragging;
     let sidebar_style = if is_visible {
         "display: flex;"
     } else {
@@ -200,8 +201,7 @@ pub fn SideBar() -> Element {
     };
 
     let mut hsv_is_visible = use_context::<HSVState>().panel_visible;
-    let mut test_panel_visibility = use_context::<TestPanelVisibility>().visibility;
-    let mut crop_panel_visibility = use_context::<CropSignal>().visibility;
+    let mut crop_panel_visibility = use_context::<SideBarState>().is_cropping;
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
@@ -214,9 +214,8 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "HSV" }
             }
-            button { class: if test_panel_visibility() { "btn on" } else { "btn" },
+            button { class: if crop_panel_visibility() { "btn on" } else { "btn" },
                 onclick: move |_| {
-                    test_panel_visibility.set(!test_panel_visibility());
                     crop_panel_visibility.set(!crop_panel_visibility());
                 },
                 img { class: "button-svg-container",
@@ -249,7 +248,7 @@ pub fn SideBar() -> Element {
         if hsv_is_visible() {
             HSVPanel {  }
         }
-        if test_panel_visibility() {
+        if crop_panel_visibility() {
             CropPanel {  }
         }
     }
