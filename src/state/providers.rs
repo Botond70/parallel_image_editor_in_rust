@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::state::app_state::{CropSignal, HSVState, ImageState, SideBarState, WGPUSignal};
+use crate::state::app_state::{CropSignal, HSVState, ImageState, SideBarState, WGPUSignal, ResizeState};
 use dioxus::prelude::*;
 use image::DynamicImage;
 
@@ -71,5 +71,17 @@ pub fn provide_wgpu_state() {
         signal: wgpu_signal,
         save_signal: save_signal,
         ready_signal,
+    });
+}
+
+pub fn provide_resize_state() {
+    let rs_width = use_signal(|| 800 as u32);
+    let rs_height = use_signal(|| 600 as u32);
+    let resize_panel_visible = use_signal(|| false);
+
+    use_context_provider(|| ResizeState {
+        panel_visible: resize_panel_visible,
+        width: rs_width,
+        height: rs_height,
     });
 }

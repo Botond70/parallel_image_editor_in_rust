@@ -24,7 +24,7 @@ pub fn MenuBar() -> Element {
                 button {class: "btn", "File" }
                 div { class: "dropdown-content",
                     label { class: "btn", "Load",
-                    input { class: "btn", r#type: "file", accept:"image/*", multiple: "true",
+                    input { r#type: "file", accept:"image/*", multiple: "true",
                         onchange: move |evt| {
                             let files = evt.files().unwrap();
                             upload_img(
