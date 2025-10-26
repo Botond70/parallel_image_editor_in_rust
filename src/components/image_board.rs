@@ -3,7 +3,6 @@ use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{HSVState, ImageState, SideBarState, WGPUSignal, ResizeState};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::renderer::start_wgpu;
-use crate::utils::upload_img::upload_img;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
@@ -60,11 +59,6 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
-
-                image_size.set((
-                    first_img.dimensions().0 as f64,
-                    first_img.dimensions().1 as f64,
-                ));
                 width_signal.set(first_img.dimensions().0);
                 height_signal.set(first_img.dimensions().1);
                 console::log_1(&"Started WGPU".into());
@@ -232,13 +226,18 @@ pub fn ImageBoard() -> Element {
                     Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
                 }
             }}
-            image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
             let mut img_vec = image_data_q();
             img_vec.append(&mut image_datas);
             image_data_q.set(img_vec);
             let mut img_vec_base64 = image_vector_base64();
             img_vec_base64.append(&mut image_datas_base64);
             image_vector_base64.set(img_vec_base64);
+            let image_q = image_data_q();
+            let currently_selected_image = image_q.get(curr_index()).expect("Error during ondrop");
+            image_size.set((
+                currently_selected_image.dimensions().0 as f64,
+                currently_selected_image.dimensions().1 as f64
+            ));
             wgpu_on.set(true);
         });
     };
@@ -332,7 +331,7 @@ fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal
                         .expect("No canvas found")));
                 },
             },
-            if is_cropping() {
+            if is_cropping() && canvas_el().is_some() {
                 CropBox { 
                     target_element: canvas_el,
                     parent: image_inner_el,

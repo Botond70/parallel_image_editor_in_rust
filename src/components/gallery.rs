@@ -1,5 +1,6 @@
 use crate::app_router::Route;
 use crate::state::app_state::{ImageState};
+use image::GenericImageView;
 use web_sys::console;
 use dioxus::prelude::*;
 const BACK_BUTTON: Asset = asset!("/assets/back-button.svg");
@@ -57,6 +58,8 @@ fn GalleryHeader(grid_size: Signal<String>) -> Element {
 #[component]
 pub fn Gallery() -> Element {
     let img_vec_base64 = use_context::<ImageState>().base64_vector;
+    let image_data_q = use_context::<ImageState>().image_vector;
+    let mut image_size = use_context::<ImageState>().img_size;
     let mut curr_index = use_context::<ImageState>().curr_image_index;
     let grid_size = use_signal(|| String::from("medium"));
     let img_vector = img_vec_base64();
@@ -68,7 +71,16 @@ pub fn Gallery() -> Element {
         _ => (400, 360, 180)
     };
 
-    console::log_1(&format!("Current index: {}", curr_index()).into());
+    let mut handle_onclick = move |index: usize| {
+        curr_index.set(index);
+        let image_q = image_data_q();
+        let currently_selected_image = image_q.get(index).expect("Error during ondrop");
+        image_size.set((
+            currently_selected_image.dimensions().0 as f64,
+            currently_selected_image.dimensions().1 as f64
+        ));
+        console::log_1(&format!("Clicked image index: {}", index).into());
+    };
 
     rsx! {
         div { class: "gallery-page",
@@ -88,8 +100,7 @@ pub fn Gallery() -> Element {
                                             key: index,
                                             style: format!("width: {}px; height: {}px;", image_width, image_height),
                                             onclick: move |_| {
-                                                curr_index.set(index);
-                                                console::log_1(&format!("Clicked image index: {}", index).into());
+                                                handle_onclick(index);
                                             },
                                             src: "{img_url}"
                                         }

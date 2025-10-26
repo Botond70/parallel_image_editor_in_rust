@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use web_sys::console;
 use crate::state::app_state::ImageState;
 use crate::utils::{
     resizeable::{use_resizeable, ResizeType},
