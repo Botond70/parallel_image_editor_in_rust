@@ -83,10 +83,10 @@ fn clamp_mouse_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<we
 /// 
 /// * `width` - initial width of the target DOM element.
 /// * `height` - initial height of the target DOM element.
-/// * `min_width` - optional minimum width of the target DOM element, defaults to 170.0.
-/// * `min_height` - optional minimum height of the target DOM element, defaults to 200.0.
-/// * `max_width` - optional maximum width of the target DOM element, defaults to 600.0.
-/// * `max_height` - optional maximum height of the target DOM element, defaults to 300.0.
+/// * `min_width` - minimum width of the target DOM element.
+/// * `min_height` - minimum height of the target DOM element.
+/// * `max_width` - maximum width of the target DOM element.
+/// * `max_height` - maximum height of the target DOM element.
 /// * `bound` - specify whether the target DOM element is bound by its parent DOM element.
 /// * `this_element` - reactive Signal containing the target DOM element.
 /// * `parent_element` - parent DOM element of the target DOM element.
@@ -99,7 +99,7 @@ fn clamp_mouse_delta(dx: &mut f64, dy: &mut f64, this_element: &Signal<Option<we
 /// 
 /// Will panic if `bound` is `true`, but `this_element` or `parent_element` are `None`.
 ///
-pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_height: Option<f64>, max_width: Option<f64>, max_height: Option<f64>, bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>, scale: f64) -> ResizeState {
+pub fn use_resizeable(width: f64, height: f64, min_width: f64, min_height: f64, max_width: f64, max_height: f64, bound: bool, this_element: Signal<Option<web_sys::Element>>, parent_element: Option<Element>, scale: f64) -> ResizeState {
     let mut resize_type: Signal<Option<ResizeType>> = use_signal(|| None);
     let mut last_resize_x = use_signal(|| 0.0);
     let mut last_resize_y = use_signal(|| 0.0);
@@ -151,14 +151,14 @@ pub fn use_resizeable(width: f64, height: f64, min_width: Option<f64>, min_heigh
                 _ => {}
             }
 
-            if new_width >= min_width.unwrap_or(170.0)
-                && new_width <= max_width.unwrap_or(600.0) {
+            if new_width >= min_width
+                && new_width <= max_width {
                     width.set(new_width);
                     translation.set((tx, translation().1));
                     last_resize_x.set(event.client_x() as f64);
             }
 
-            if new_height >= min_height.unwrap_or(200.0) && new_height <= max_height.unwrap_or(300.0) {
+            if new_height >= min_height && new_height <= max_height {
                 height.set(new_height);
                 translation.set((translation().0, ty));
                 last_resize_y.set(event.client_y() as f64);

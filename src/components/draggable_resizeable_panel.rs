@@ -6,10 +6,18 @@ use crate::utils::{
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DraggablePanelProps {
-    pub min_width: Option<f64>,
-    pub min_height: Option<f64>,
-    pub max_width: Option<f64>,
-    pub max_height: Option<f64>,
+    #[props(default = 150.0)]
+    pub width: f64,
+    #[props(default = 100.0)]
+    pub height: f64,
+    #[props(default = 150.0)]
+    pub min_width: f64,
+    #[props(default = 100.0)]
+    pub min_height: f64,
+    #[props(default = 600.0)]
+    pub max_width: f64,
+    #[props(default = 400.0)]
+    pub max_height: f64,
     pub title: String,
     pub PanelContent: Element,
 }
@@ -19,7 +27,7 @@ pub fn DraggableResizeablePanel(props: DraggablePanelProps) -> Element {
     let nonesignal = use_signal(|| Option::None);
     let default_offset = (100.0, 100.0);
     let default_scale = 1.0;
-    let resize_state = use_resizeable(500.0, 200.0, props.min_width, props.min_height, props.max_width, props.max_height, false, nonesignal, None, default_scale);
+    let resize_state = use_resizeable(props.width, props.height, props.min_width, props.min_height, props.max_width, props.max_height, false, nonesignal, None, default_scale);
     let drag_state = use_draggable(false, nonesignal, None, default_scale);
 
     let panel_style = use_memo(move || {
