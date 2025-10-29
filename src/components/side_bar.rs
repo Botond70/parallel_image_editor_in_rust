@@ -26,7 +26,7 @@ pub fn HSVPanel() -> Element {
                     div { class: "panel-slider-container",
                         p { "HUE" },
                         input {
-                            class: "panel-slider",
+                            class: "styled-slider",
                             type: "range",
                             min: -1.0,
                             value:"{hue_slider_value}" ,
@@ -44,7 +44,7 @@ pub fn HSVPanel() -> Element {
                     div { class: "panel-slider-container",
                         p{ "SAT" },
                         input {
-                            class: "panel-slider",
+                            class: "styled-slider",
                             type: "range",
                             min: -1.0,
                             value:"{sat_slider_value}",
@@ -62,7 +62,7 @@ pub fn HSVPanel() -> Element {
                     div { class: "panel-slider-container",
                         p{ "VAL" },
                         input {
-                            class: "panel-slider",
+                            class: "styled-slider",
                             type: "range",
                             min: -1.0,
                             value:"{val_slider_value}" ,
@@ -148,78 +148,13 @@ fn CropPanel() -> Element {
             title: String::from("Crop"),
             PanelContent:
                 rsx! {
-                    div { class: "panel-slider-container",
-                        p { "Left" },
-                        input {
-                            class: "panel-slider",
-                            type: "range",
-                            min: 0.0,
-                            value:"{left_slider_value}" ,
-                            max: 1.0,
-                            step: 0.0001,
-                            oninput: move |e|{
-                                if let Ok(parsed) = e.value().parse::<f32>() {
-                                    left_slider_value.set(parsed);
-                                    left.set(parsed);
-                                }
-                            },
-                        }
-                        p { class: "slider-progress", "{left_slider_value}" }
-                    },
-                    div { class: "panel-slider-container",
-                        p { "Right" },
-                        input {
-                            class: "panel-slider",
-                            type: "range",
-                            min: 0.0,
-                            value:"{right_slider_value}" ,
-                            max: 1.0,
-                            step: 0.0001,
-                            oninput: move |e|{
-                                if let Ok(parsed) = e.value().parse::<f32>() {
-                                    right_slider_value.set(parsed);
-                                    right.set(parsed);
-                                }
-                            },
-                        }
-                        p { class: "slider-progress", "{right_slider_value}" }
-                    },
-                    div { class: "panel-slider-container",
-                        p { "Top" },
-                        input {
-                            class: "panel-slider",
-                            type: "range",
-                            min: 0.0,
-                            value:"{top_slider_value}" ,
-                            max: 1.0,
-                            step: 0.0001,
-                            oninput: move |e|{
-                                if let Ok(parsed) = e.value().parse::<f32>() {
-                                    top_slider_value.set(parsed);
-                                    top.set(parsed);
-                                }
-                            },
-                        }
-                        p { class: "slider-progress", "{top_slider_value}" }
-                    },
-                    div { class: "panel-slider-container",
-                        p { "Bottom" },
-                        input {
-                            class: "panel-slider",
-                            type: "range",
-                            min: 0.0,
-                            value:"{bottom_slider_value}" ,
-                            max: 1.0,
-                            step: 0.0001,
-                            oninput: move |e|{
-                                if let Ok(parsed) = e.value().parse::<f32>() {
-                                    bottom_slider_value.set(parsed);
-                                    bottom.set(parsed);
-                                }
-                            },
-                        }
-                        p { class: "slider-progress", "{bottom_slider_value}" }
-                    },
+                    button {
+                        class: "btn",
+                        onclick: move |_evt| {
+                            //do nothing
+                        },
+                        "Save!"
+                    }
                 }
         }
     }

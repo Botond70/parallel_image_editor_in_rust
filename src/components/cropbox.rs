@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use web_sys::console;
-use crate::state::app_state::ImageState;
+use crate::state::app_state::{ImageState, CropSignal};
 use crate::utils::{
     resizeable::{use_resizeable, ResizeType},
     draggable::{use_draggable},
@@ -15,6 +15,7 @@ pub struct CropBoxProps {
 
 #[component]
 pub fn CropBox(props: CropBoxProps) -> Element {
+    let mut crop_signal = use_context::<CropSignal>();
     let (width, height) = (
         props
             .target_element

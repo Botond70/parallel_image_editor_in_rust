@@ -24,7 +24,7 @@ pub fn DraggableResizeablePanel(props: DraggablePanelProps) -> Element {
 
     let panel_style = use_memo(move || {
         format!(
-            "display: grid; transform: translate({}px, {}px); width: {}px; height: {}px;",
+            "display: flex; transform: translate({}px, {}px); width: {}px; height: {}px;",
             resize_state.translation.read().0 + drag_state.translation.read().0 + default_offset.0,
             resize_state.translation.read().1 + drag_state.translation.read().1 + default_offset.1,
             resize_state.width.read(),

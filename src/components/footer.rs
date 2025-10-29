@@ -18,7 +18,7 @@ pub fn FootBar() -> Element {
                         min: format!("{}", zoom_limits().0),
                         value:"{zoom_value}" ,
                         max: format!("{}", zoom_limits().1),
-                        class: "zoom-slider",
+                        class: "styled-slider",
                         id:"range1",
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<i64>() {
@@ -26,7 +26,7 @@ pub fn FootBar() -> Element {
                             }
                         }
                     },
-                    label{"{zoom_value}%"}
+                    p { class: "slider-progress", "{zoom_value}%" }
                 }
             }
         }
