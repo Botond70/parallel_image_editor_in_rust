@@ -30,6 +30,11 @@ pub struct CropSignal {
     pub right: Signal<f32>,
     pub top: Signal<f32>,
     pub bottom: Signal<f32>,
+    pub left_applied: Signal<f32>,
+    pub right_applied: Signal<f32>,
+    pub top_applied: Signal<f32>,
+    pub bottom_applied: Signal<f32>,
+    pub cropbox_element: Signal<Option<web_sys::Element>>,
 }
 
 #[derive(Clone, Copy)]
@@ -47,4 +52,5 @@ pub struct ImageState {
     pub base64_vector: Signal<VecDeque<String>>,
     pub curr_image_index: Signal<usize>,
     pub img_size: Signal<(f64, f64)>,
+    pub image_modified: Signal<bool>,
 }

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::state::app_state::{CropSignal, HSVState, ImageState, SideBarState, WGPUSignal, ResizeState};
+use crate::{components::cropbox, state::app_state::{CropSignal, HSVState, ImageState, ResizeState, SideBarState, WGPUSignal}};
 use dioxus::prelude::*;
 use image::DynamicImage;
 
@@ -35,12 +35,22 @@ pub fn provide_crop_state() {
     let right = use_signal(|| 0.0 as f32);
     let top = use_signal(|| 0.0 as f32);
     let bottom = use_signal(|| 0.0 as f32);
+    let left_applied = use_signal(|| 0.0 as f32);
+    let right_applied = use_signal(|| 0.0 as f32);
+    let top_applied = use_signal(|| 0.0 as f32);
+    let bottom_applied = use_signal(|| 0.0 as f32);
+    let cropbox_element = use_signal(|| Option::None);
 
     use_context_provider(|| CropSignal {
         left,
         right,
         top,
         bottom,
+        left_applied,
+        right_applied,
+        top_applied,
+        bottom_applied,
+        cropbox_element,
     });
 }
 
@@ -51,6 +61,7 @@ pub fn provide_image_state() {
     let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
     let image_index = use_signal(|| 0 as usize);
     let img_size = use_signal(|| (0.0, 0.0));
+    let image_modified = use_signal(|| false);
 
     use_context_provider(|| ImageState {
         zoom: img_scale,
@@ -59,6 +70,7 @@ pub fn provide_image_state() {
         base64_vector: image_vector_base64,
         curr_image_index: image_index,
         img_size,
+        image_modified,
     });
 }
 

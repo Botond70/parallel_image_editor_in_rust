@@ -1,7 +1,11 @@
 use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
 use crate::state::app_state::{CropSignal, HSVState, ResizeState, SideBarState};
-use dioxus::html::embed::height;
 use dioxus::prelude::*;
+use image::GenericImageView;
+use std::io::Cursor;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64_engine;
+use web_sys::console;
 
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
@@ -20,6 +24,9 @@ pub fn HSVPanel() -> Element {
 
     rsx! {
         DraggableResizeablePanel {
+            width: 500.0,
+            height: 200.0,
+            max_height: 220.0,
             title: String::from("HSV"),
             PanelContent:
                 rsx! {
@@ -132,28 +139,90 @@ fn ResizePanel() -> Element {
         }
     }
 }
+
 #[component]
-fn CropPanel() -> Element {
-    let mut top = use_context::<CropSignal>().top;
-    let mut bottom = use_context::<CropSignal>().bottom;
-    let mut left = use_context::<CropSignal>().left;
-    let mut right = use_context::<CropSignal>().right;
-    let mut top_slider_value = use_signal(|| 0.0);
-    let mut bottom_slider_value = use_signal(|| 0.0);
-    let mut left_slider_value = use_signal(|| 0.0);
-    let mut right_slider_value = use_signal(|| 0.0);
+fn CropPanel(visibility: Signal<bool>) -> Element {
+    let top = use_context::<CropSignal>().top;
+    let bottom = use_context::<CropSignal>().bottom;
+    let left = use_context::<CropSignal>().left;
+    let right = use_context::<CropSignal>().right;
+    let mut top_applied = use_context::<CropSignal>().top_applied;
+    let mut bottom_applied = use_context::<CropSignal>().bottom_applied;
+    let mut left_applied = use_context::<CropSignal>().left_applied;
+    let mut right_applied = use_context::<CropSignal>().right_applied;
+    let mut image_vector = use_context::<crate::state::app_state::ImageState>().image_vector;
+    let mut base64_vector = use_context::<crate::state::app_state::ImageState>().base64_vector;
+    let curr_index = use_context::<crate::state::app_state::ImageState>().curr_image_index;
+    let mut image_modified = use_context::<crate::state::app_state::ImageState>().image_modified;
+
+    let top_val = top();
+    let bottom_val = bottom();
+    let left_val = left();
+    let right_val = right();
+
+    let mut handle_crop = move |_evt: Event<MouseData>| {
+        let mut img_vec = image_vector.write();
+        if let Some(current_image) = img_vec.get_mut(curr_index()) {
+            let (img_width, img_height) = current_image.dimensions();
+            let left_px = (left_val * img_width as f32) as u32;
+            let top_px = (top_val * img_height as f32) as u32;
+            let right_px = (right_val * img_width as f32) as u32;
+            let bottom_px = (bottom_val * img_height as f32) as u32;
+
+            let crop_width = img_width.saturating_sub(left_px).saturating_sub(right_px);
+            let crop_height = img_height.saturating_sub(top_px).saturating_sub(bottom_px);
+
+            if crop_width > 0 && crop_height > 0 {
+                let cropped = current_image.crop_imm(left_px, top_px, crop_width, crop_height);
+                *current_image = cropped;
+
+                // Update base64 preview for gallery
+                let rgb_img = current_image.to_rgb8();
+                let dynamic_rgb = image::DynamicImage::ImageRgb8(rgb_img);
+                let mut cursor = Cursor::new(Vec::new());
+                if dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg).is_ok() {
+                    let jpg_bytes = cursor.into_inner();
+                    let base64_str = base64_engine.encode(&jpg_bytes);
+                    let mut base64_vec = base64_vector.write();
+                    if let Some(base64_entry) = base64_vec.get_mut(curr_index()) {
+                        *base64_entry = format!("data:image/jpeg;base64,{}", base64_str);
+                    }
+                }
+
+                image_modified.set(true);
+
+                // Reset applied crop signals for next crop
+                left_applied.set(0.0);
+                top_applied.set(0.0);
+                right_applied.set(0.0);
+                bottom_applied.set(0.0);
+
+                console::log_1(&format!("Crop applied - Left: {:.2}, Top: {:.2}, Right: {:.2}, Bottom: {:.2}", left_val, top_val, right_val, bottom_val).into());
+                                    }
+        }
+        visibility.set(false);
+    };
 
     rsx! {
         DraggableResizeablePanel {
             title: String::from("Crop"),
             PanelContent:
                 rsx! {
-                    button {
-                        class: "btn",
-                        onclick: move |_evt| {
-                            //do nothing
-                        },
-                        "Save!"
+                    div { class: "button-container",
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
+                                handle_crop(_evt);
+                            },
+                            "Crop!"
+                        }
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
+                                visibility.set(false);
+                            },
+                            "Cancel"
+                        }
                     }
                 }
         }
@@ -223,7 +292,9 @@ pub fn SideBar() -> Element {
             HSVPanel {  }
         }
         if crop_panel_visibility() {
-            CropPanel {  }
+            CropPanel { 
+                visibility: crop_panel_visibility,
+            }
         }
         if resize_panel_visibility() {
             ResizePanel {  }

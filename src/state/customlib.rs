@@ -140,12 +140,12 @@ impl State {
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
-        let top = use_context::<CropSignal>().top;
-        let right = use_context::<CropSignal>().right;
-        let bottom = use_context::<CropSignal>().bottom;
-        let left = use_context::<CropSignal>().left;
+        let top_applied = use_context::<CropSignal>().top_applied;
+        let right_applied = use_context::<CropSignal>().right_applied;
+        let bottom_applied = use_context::<CropSignal>().bottom_applied;
+        let left_applied = use_context::<CropSignal>().left_applied;
 
-        let globals = Globals::new(hue(), sat(), val(), left(), right(), top(), bottom());
+        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
         self.queue
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
@@ -526,12 +526,12 @@ impl State {
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
-        let top = use_context::<CropSignal>().top;
-        let right = use_context::<CropSignal>().right;
-        let bottom = use_context::<CropSignal>().bottom;
-        let left = use_context::<CropSignal>().left;
+        let top_applied = use_context::<CropSignal>().top_applied;
+        let right_applied = use_context::<CropSignal>().right_applied;
+        let bottom_applied = use_context::<CropSignal>().bottom_applied;
+        let left_applied = use_context::<CropSignal>().left_applied;
 
-        let globals = Globals::new(hue(), sat(), val(), left(), right(), top(), bottom());
+        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
 
         let globals_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("globals buffer"),

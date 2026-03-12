@@ -22,6 +22,7 @@ pub fn ImageBoard() -> Element {
     let mut image_data_q = use_context::<ImageState>().image_vector;
     let mut image_vector_base64 = use_context::<ImageState>().base64_vector;
     let curr_index = use_context::<ImageState>().curr_image_index;
+    let mut image_modified = use_context::<ImageState>().image_modified;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
     let can_drag = use_context::<SideBarState>().is_dragging;
@@ -81,9 +82,9 @@ pub fn ImageBoard() -> Element {
 
     use_effect(move || {
         // track hue, saturation, and value
-        let hue = hue();
-        let saturation = sat();
-        let value = val();
+        let _ = hue();
+        let _ = sat();
+        let _ = val();
 
         if wgpu_on() && ready_signal() {
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
@@ -91,6 +92,24 @@ pub fn ImageBoard() -> Element {
                 wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
             }
+        }
+    });
+
+    use_effect(move || {
+        // Reload image when it has been modified
+        if image_modified() {
+            if wgpu_on() && ready_signal() {
+                if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                    let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                    wgpu_state.img_vec = image_data_q.cloned();
+                    wgpu_state.draw(true, None);
+                    console::log_1(&"Triggered re-render from image modification".into());
+                }
+            }
+
+            spawn(async move {
+                image_modified.set(false);
+            });
         }
     });
 
