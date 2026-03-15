@@ -39,7 +39,7 @@ pub fn HSVPanel() -> Element {
                             value:"{hue_slider_value}" ,
                             max: 1.0,
                             step: 0.001,
-                            oninput: move |e|{
+                            oninput: move |e| {
                                 if let Ok(parsed) = e.value().parse::<f32>() {
                                     hue_slider_value.set(parsed);
                                     hue.set(parsed * std::f32::consts::PI);
@@ -198,7 +198,7 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
                 bottom_applied.set(0.0);
 
                 console::log_1(&format!("Crop applied - Left: {:.2}, Top: {:.2}, Right: {:.2}, Bottom: {:.2}", left_val, top_val, right_val, bottom_val).into());
-                                    }
+            }
         }
         visibility.set(false);
     };

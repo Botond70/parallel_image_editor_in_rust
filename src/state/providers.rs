@@ -4,7 +4,7 @@ use crate::{components::cropbox, state::app_state::{CropSignal, HSVState, ImageS
 use dioxus::prelude::*;
 use image::DynamicImage;
 
-pub fn provide_hsv_state() {
+pub fn use_hsv_state() {
     let hsv_visible = use_signal(|| false);
     let hue = use_signal(|| 0 as f32);
     let saturation = use_signal(|| 0 as f32);
@@ -18,7 +18,7 @@ pub fn provide_hsv_state() {
     });
 }
 
-pub fn provide_sidebar_state() {
+pub fn use_sidebar_state() {
     let sidebar_is_visible = use_signal(|| true);
     let is_cropping = use_signal(|| false);
     let is_dragging = use_signal(|| false);
@@ -30,7 +30,7 @@ pub fn provide_sidebar_state() {
     });
 }
 
-pub fn provide_crop_state() {
+pub fn use_crop_state() {
     let left = use_signal(|| 0.0 as f32);
     let right = use_signal(|| 0.0 as f32);
     let top = use_signal(|| 0.0 as f32);
@@ -54,7 +54,7 @@ pub fn provide_crop_state() {
     });
 }
 
-pub fn provide_image_state() {
+pub fn use_image_state() {
     let img_scale = use_signal(|| 100);
     let image_scale_limits: Signal<(i64, i64)> = use_signal(|| (20, 3000));
     let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
@@ -74,7 +74,7 @@ pub fn provide_image_state() {
     });
 }
 
-pub fn provide_wgpu_state() {
+pub fn use_wgpu_state() {
     let wgpu_signal = use_signal(|| false);
     let save_signal = use_signal(|| 0 as i64);
     let ready_signal = use_signal(|| false);
@@ -86,7 +86,7 @@ pub fn provide_wgpu_state() {
     });
 }
 
-pub fn provide_resize_state() {
+pub fn use_resize_state() {
     let rs_width = use_signal(|| 800 as u32);
     let rs_height = use_signal(|| 600 as u32);
     let resize_panel_visible = use_signal(|| false);
