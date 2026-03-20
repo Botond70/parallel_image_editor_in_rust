@@ -111,6 +111,12 @@ fn ResizePanel() -> Element {
 
     rsx! {
         DraggableResizeablePanel {
+            width: 200.0,
+            height: 200.0,
+            min_height: 200.0,
+            min_width: 200.0,
+            max_width: 200.0,
+            max_height: 200.0,
             title: String::from("Resize Image"),
             PanelContent:
                 rsx! {

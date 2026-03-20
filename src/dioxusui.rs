@@ -22,7 +22,15 @@ pub fn App() -> Element {
 
     rsx! {
         document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
-        Router::<Route> {}
+        Router::<Route> {
+            config: || {
+                RouterConfig::default()
+                    .on_update(|state| {
+                        (state.current() == Route::NotFound { segments: vec![]})
+                            .then_some(NavigationTarget::Internal(Route::WorkSpace))
+                    })
+            }
+        }
     }
 }
 

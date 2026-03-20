@@ -20,6 +20,7 @@ pub fn CropBox(props: CropBoxProps) -> Element {
     let mut crop_right = use_context::<CropSignal>().right;
     let mut crop_top = use_context::<CropSignal>().top;
     let mut crop_bottom = use_context::<CropSignal>().bottom;
+    let mut cursor = use_signal(|| "".to_string()); // Add cursor signal
     let (width, height) = (
         props
             .target_element
@@ -60,11 +61,12 @@ pub fn CropBox(props: CropBoxProps) -> Element {
 
     let cropbox_style = use_memo(move || {
         format!(
-            "transform: translate({}px, {}px); width: {}px; height: {}px;",
+            "transform: translate({}px, {}px); width: {}px; height: {}px; cursor: {};",
             (resize_state.translation.read().0 + drag_state.translation.read().0),
             (resize_state.translation.read().1 + drag_state.translation.read().1),
             *resize_state.width.read(),
-            *resize_state.height.read()
+            *resize_state.height.read(),
+            cursor() // Use cursor signal
         )
     });
 
@@ -137,24 +139,48 @@ pub fn CropBox(props: CropBoxProps) -> Element {
                 id: "crop-box-top-left",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::TopLeft));
+                },
+                onmouseover: move |_| {
+                    cursor.set("nwse-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-top",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::Top));
+                },
+                onmouseover: move |_| {
+                    cursor.set("ns-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-top-right",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::TopRight));
+                },
+                onmouseover: move |_| {
+                    cursor.set("nesw-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-left",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::Left));
+                },
+                onmouseover: move |_| {
+                    cursor.set("ew-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
@@ -165,30 +191,62 @@ pub fn CropBox(props: CropBoxProps) -> Element {
                 },
                 onmouseup: move |_| {
                     drag_state.is_dragging.set(false);
+                },
+                onmouseover: move |_| {
+                    cursor.set("move".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-right",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::Right));
+                },
+                onmouseover: move |_| {
+                    cursor.set("ew-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-bottom-left",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::BottomLeft));
+                },
+                onmouseover: move |_| {
+                    cursor.set("nesw-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-bottom",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::Bottom));
+                },
+                onmouseover: move |_| {
+                    console::log_1(&"bottom hovered".into());
+                    cursor.set("ns-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             },
             div {
                 id: "crop-box-bottom-right",
                 onmousedown: move |evt| {
                     handle_resize(evt, Some(ResizeType::BottomRight));
+                },
+                onmouseover: move |_| {
+                    console::log_1(&"bottom-right hovered".into());
+                    cursor.set("nwse-resize".to_string());
+                },
+                onmouseleave: move |_| {
+                    cursor.set("".to_string());
                 }
             }
         }
