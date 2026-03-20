@@ -1,6 +1,6 @@
 use crate::{
     app_router::Route,
-    state::app_state::{ImageState, ResizeState, SideBarState, WGPUSignal},
+    state::app_state::{ImageState, SideBarState, WGPUSignal},
     utils::upload_img::upload_img,
 };
 use dioxus::prelude::*;

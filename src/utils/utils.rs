@@ -1,6 +1,5 @@
 use crate::dioxus_elements::geometry::WheelDelta;
-use crate::state::app_state::ImageState;
-use image::{GenericImageView, ImageEncoder}; // Import the trait to bring encode into scope
+use image::{ImageEncoder};
 use image::codecs::png::PngEncoder;
 use image::{ImageBuffer, Rgba};
 use wasm_bindgen::prelude::*;

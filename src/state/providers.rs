@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{components::cropbox, state::app_state::{CropSignal, HSVState, ImageState, ResizeState, SideBarState, WGPUSignal}};
+use crate::{state::app_state::{CropSignal, HSVState, ImageState, ResizeState, SideBarState, WGPUSignal}};
 use dioxus::prelude::*;
 use image::DynamicImage;
 

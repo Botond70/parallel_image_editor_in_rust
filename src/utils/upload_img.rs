@@ -1,8 +1,7 @@
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::hooks;
 use dioxus::html::FileEngine;
-use dioxus::{html::HasFileData, prelude::*};
+use dioxus::{prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
 use std::io::Cursor;

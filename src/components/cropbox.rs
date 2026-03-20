@@ -20,7 +20,8 @@ pub fn CropBox(props: CropBoxProps) -> Element {
     let mut crop_right = use_context::<CropSignal>().right;
     let mut crop_top = use_context::<CropSignal>().top;
     let mut crop_bottom = use_context::<CropSignal>().bottom;
-    let mut cursor = use_signal(|| "".to_string()); // Add cursor signal
+    let mut cursor = use_signal(|| "".to_string());
+
     let (width, height) = (
         props
             .target_element
@@ -66,7 +67,7 @@ pub fn CropBox(props: CropBoxProps) -> Element {
             (resize_state.translation.read().1 + drag_state.translation.read().1),
             *resize_state.width.read(),
             *resize_state.height.read(),
-            cursor() // Use cursor signal
+            cursor()
         )
     });
 

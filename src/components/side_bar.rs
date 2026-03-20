@@ -90,19 +90,6 @@ pub fn HSVPanel() -> Element {
 }
 
 #[component]
-fn TestPanel() -> Element {
-    rsx! {
-        DraggableResizeablePanel {
-            title: String::from("Test Panel"),
-            PanelContent:
-                rsx! {
-                    div { "PLACEHOLDER" }
-                }
-        }
-    }
-}
-
-#[component]
 fn ResizePanel() -> Element {
     let mut imwidth = use_context::<ResizeState>().width;
     let widthval = imwidth();
