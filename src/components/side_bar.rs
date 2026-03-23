@@ -5,7 +5,7 @@ use image::GenericImageView;
 use std::io::Cursor;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use web_sys::console;
+use web_sys::{console, window};
 
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
@@ -135,10 +135,10 @@ fn ResizePanel() -> Element {
 
 #[component]
 fn CropPanel(visibility: Signal<bool>) -> Element {
-    let top = use_context::<CropSignal>().top;
-    let bottom = use_context::<CropSignal>().bottom;
-    let left = use_context::<CropSignal>().left;
-    let right = use_context::<CropSignal>().right;
+    let mut top = use_context::<CropSignal>().top;
+    let mut bottom = use_context::<CropSignal>().bottom;
+    let mut left = use_context::<CropSignal>().left;
+    let mut right = use_context::<CropSignal>().right;
     let mut top_applied = use_context::<CropSignal>().top_applied;
     let mut bottom_applied = use_context::<CropSignal>().bottom_applied;
     let mut left_applied = use_context::<CropSignal>().left_applied;
@@ -146,7 +146,15 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
     let mut image_vector = use_context::<crate::state::app_state::ImageState>().image_vector;
     let mut base64_vector = use_context::<crate::state::app_state::ImageState>().base64_vector;
     let curr_index = use_context::<crate::state::app_state::ImageState>().curr_image_index;
+    let mut image_size = use_context::<crate::state::app_state::ImageState>().img_size;
     let mut image_modified = use_context::<crate::state::app_state::ImageState>().image_modified;
+    let mut width_signal = use_context::<ResizeState>().width;
+    let mut height_signal = use_context::<ResizeState>().height;
+    let perf = window().unwrap().performance().unwrap();
+    let nanos = (perf.now() * 1_000_000.0) as u64;
+    console::log_1(&format!("CropPanel rendered at {} nanoseconds", nanos).into());
+    let nanos_now = (perf.now() * 1_000_000.0) as u64;
+    console::log_1(&format!("CropPanel render time: {} nanoseconds", nanos_now - nanos).into());
 
     let top_val = top();
     let bottom_val = bottom();
@@ -166,10 +174,14 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
             let crop_height = img_height.saturating_sub(top_px).saturating_sub(bottom_px);
 
             if crop_width > 0 && crop_height > 0 {
-                let cropped = current_image.crop_imm(left_px, top_px, crop_width, crop_height);
-                *current_image = cropped;
+                left_applied.set(left_val);
+                top_applied.set(top_val);
+                right_applied.set(right_val);
+                bottom_applied.set(bottom_val);
 
-                // Update base64 preview for gallery
+                let cropped_image = current_image.crop_imm(left_px, top_px, crop_width, crop_height);
+                *current_image = cropped_image;
+
                 let rgb_img = current_image.to_rgb8();
                 let dynamic_rgb = image::DynamicImage::ImageRgb8(rgb_img);
                 let mut cursor = Cursor::new(Vec::new());
@@ -182,13 +194,20 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
                     }
                 }
 
-                image_modified.set(true);
+                image_size.set((crop_width as f64, crop_height as f64));
+                width_signal.set(crop_width);
+                height_signal.set(crop_height);
 
-                // Reset applied crop signals for next crop
+                left.set(0.0);
+                top.set(0.0);
+                right.set(0.0);
+                bottom.set(0.0);
                 left_applied.set(0.0);
                 top_applied.set(0.0);
                 right_applied.set(0.0);
                 bottom_applied.set(0.0);
+
+                image_modified.set(true);
 
                 console::log_1(&format!("Crop applied - Left: {:.2}, Top: {:.2}, Right: {:.2}, Bottom: {:.2}", left_val, top_val, right_val, bottom_val).into());
             }
