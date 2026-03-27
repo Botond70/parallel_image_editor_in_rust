@@ -1,4 +1,5 @@
 pub mod draggable;
+pub mod redraw_metrics;
 pub mod renderer;
 pub mod resizeable;
 pub mod upload_img;

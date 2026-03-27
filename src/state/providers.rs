@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{state::app_state::{CropSignal, HSVState, ImageState, ResizeState, SideBarState, WGPUSignal}};
+use crate::state::app_state::{CropSignal, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
 use dioxus::prelude::*;
 use image::DynamicImage;
 
@@ -62,6 +62,8 @@ pub fn use_image_state() {
     let image_index = use_signal(|| 0 as usize);
     let img_size = use_signal(|| (0.0, 0.0));
     let image_modified = use_signal(|| false);
+    let ui_redraw_start_ns = use_signal(|| Option::<u64>::None);
+    let ui_redraw_kind = use_signal(|| Option::<RedrawKind>::None);
 
     use_context_provider(|| ImageState {
         zoom: img_scale,
@@ -71,6 +73,8 @@ pub fn use_image_state() {
         curr_image_index: image_index,
         img_size,
         image_modified,
+        ui_redraw_start_ns,
+        ui_redraw_kind,
     });
 }
 

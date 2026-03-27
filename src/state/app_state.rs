@@ -2,6 +2,13 @@ use std::collections::VecDeque;
 use dioxus::prelude::*;
 use image::DynamicImage;
 
+#[derive(Clone, Copy, Debug)]
+pub enum RedrawKind {
+    HSV,
+    Crop,
+    Resize,
+}
+
 #[derive(Clone, Copy)]
 pub struct WGPUSignal {
     pub signal: Signal<bool>,
@@ -53,4 +60,6 @@ pub struct ImageState {
     pub curr_image_index: Signal<usize>,
     pub img_size: Signal<(f64, f64)>,
     pub image_modified: Signal<bool>,
+    pub ui_redraw_start_ns: Signal<Option<u64>>,
+    pub ui_redraw_kind: Signal<Option<RedrawKind>>,
 }

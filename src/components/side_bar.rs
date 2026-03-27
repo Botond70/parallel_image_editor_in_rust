@@ -1,5 +1,6 @@
 use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
-use crate::state::app_state::{CropSignal, HSVState, ResizeState, SideBarState};
+use crate::utils::redraw_metrics::mark_click_to_visible_with_start_ns;
+use crate::state::app_state::{CropSignal, HSVState, RedrawKind, ResizeState, SideBarState};
 use dioxus::prelude::*;
 use image::GenericImageView;
 use std::io::Cursor;
@@ -22,6 +23,12 @@ pub fn HSVPanel() -> Element {
     let mut val = use_context::<HSVState>().value;
     let mut val_slider_value = use_signal(|| 0.0);
 
+    let perf = window().unwrap().performance().unwrap();
+    let nanos = (perf.now() * 1_000_000.0) as u64;
+    console::log_1(&format!("HSVPanel rendered at {} nanoseconds", nanos).into());
+    let nanos_now = (perf.now() * 1_000_000.0) as u64;
+    console::log_1(&format!("HSVPanel render time: {} nanoseconds", nanos_now - nanos).into());
+
     rsx! {
         DraggableResizeablePanel {
             width: 500.0,
@@ -41,6 +48,8 @@ pub fn HSVPanel() -> Element {
                             step: 0.001,
                             oninput: move |e| {
                                 if let Ok(parsed) = e.value().parse::<f32>() {
+                                    let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+                                    mark_click_to_visible_with_start_ns(RedrawKind::HSV, start_ns);
                                     hue_slider_value.set(parsed);
                                     hue.set(parsed * std::f32::consts::PI);
                                 }
@@ -59,6 +68,8 @@ pub fn HSVPanel() -> Element {
                             step: 0.001,
                             oninput: move |e| {
                                 if let Ok(parsed) = e.value().parse::<f32>() {
+                                    let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+                                    mark_click_to_visible_with_start_ns(RedrawKind::HSV, start_ns);
                                     sat_slider_value.set(parsed);
                                     sat.set(parsed);
                                 }
@@ -77,6 +88,8 @@ pub fn HSVPanel() -> Element {
                             step: 0.001,
                             oninput: move |e| {
                                 if let Ok(parsed) = e.value().parse::<f32>() {
+                                    let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+                                    mark_click_to_visible_with_start_ns(RedrawKind::HSV, start_ns);
                                     val_slider_value.set(parsed);
                                     val.set(parsed);
                                 }
@@ -113,6 +126,8 @@ fn ResizePanel() -> Element {
                         placeholder: "Width",
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<u32>() {
+                                let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+                                mark_click_to_visible_with_start_ns(RedrawKind::Resize, start_ns);
                                 imwidth.set(parsed);
                             }
                         }
@@ -124,6 +139,8 @@ fn ResizePanel() -> Element {
                         placeholder: "Height",
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<u32>() {
+                                let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+                                mark_click_to_visible_with_start_ns(RedrawKind::Resize, start_ns);
                                 imheight.set(parsed);
                             }
                         }
@@ -162,6 +179,9 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
     let right_val = right();
 
     let mut handle_crop = move |_evt: Event<MouseData>| {
+        let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
+        mark_click_to_visible_with_start_ns(RedrawKind::Crop, start_ns);
+
         let mut img_vec = image_vector.write();
         if let Some(current_image) = img_vec.get_mut(curr_index()) {
             let (img_width, img_height) = current_image.dimensions();

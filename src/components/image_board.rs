@@ -1,7 +1,11 @@
 use crate::components::cropbox::CropBox;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{HSVState, ImageState, SideBarState, WGPUSignal, ResizeState};
+use crate::state::app_state::{HSVState, ImageState, RedrawKind, SideBarState, WGPUSignal, ResizeState};
 use crate::state::customlib::{Filesave_config, State};
+use crate::utils::redraw_metrics::{
+    current_pending_seq, record_visible_duration, snapshot_pending_click_to_visible,
+    should_log_seq,
+};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
@@ -13,6 +17,8 @@ use std::collections::VecDeque;
 use std::io::Cursor;
 use std::rc::Rc;
 use web_sys::{console, window};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 
 #[component]
 pub fn ImageBoard() -> Element {
@@ -87,10 +93,21 @@ pub fn ImageBoard() -> Element {
         let _ = val();
 
         if wgpu_on() && ready_signal() {
+            let perf = window().unwrap().performance().unwrap();
+            let start = (perf.now() * 1_000_000.0) as u64;
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
                 wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
+            }
+            let end = (perf.now() * 1_000_000.0) as u64;
+            console::log_1(
+                &format!("Redraw time (HSV): {} nanoseconds", (end - start) as u64).into(),
+            );
+            if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                if matches!(kind, RedrawKind::HSV) {
+                    schedule_click_to_visible_log(start_ns, kind, seq);
+                }
             }
         }
     });
@@ -102,8 +119,19 @@ pub fn ImageBoard() -> Element {
                 if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                     let mut wgpu_state = wgpu_state_rc.borrow_mut();
                     wgpu_state.img_vec = image_data_q.cloned();
+                    let perf = window().unwrap().performance().unwrap();
+                    let start = (perf.now() * 1_000_000.0) as u64;
                     wgpu_state.draw(true, None);
+                    let end = (perf.now() * 1_000_000.0) as u64;
                     console::log_1(&"Triggered re-render from image modification".into());
+                    console::log_1(
+                        &format!("Redraw time (Crop): {} nanoseconds", (end - start) as u64).into(),
+                    );
+                    if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                        if matches!(kind, RedrawKind::Crop) {
+                            schedule_click_to_visible_log(start_ns, kind, seq);
+                        }
+                    }
                 }
             }
 
@@ -139,7 +167,18 @@ pub fn ImageBoard() -> Element {
                 console::log_1(
                     &format!("image_size: {} x {}", image_size().0, image_size().1).into(),
                 );
+                let perf = window().unwrap().performance().unwrap();
+                let start = (perf.now() * 1_000_000.0) as u64;
                 wgpu_state.draw(false, None);
+                let end = (perf.now() * 1_000_000.0) as u64;
+                console::log_1(
+                    &format!("Redraw time (Resize): {} nanoseconds", (end - start) as u64).into(),
+                );
+                if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                    if matches!(kind, RedrawKind::Resize) {
+                        schedule_click_to_visible_log(start_ns, kind, seq);
+                    }
+                }
             }
         } else if width_signal() > 0 && height_signal() > 0 {
             width_signal.set(0);
@@ -358,4 +397,57 @@ fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal
             }
         }
     }
+}
+
+fn schedule_click_to_visible_log(start_ns: u64, kind: RedrawKind, seq: u64) {
+    let kind_label: &'static str = match kind {
+        RedrawKind::HSV => "HSV",
+        RedrawKind::Crop => "Crop",
+        RedrawKind::Resize => "Resize",
+    };
+
+    let cb1 = Closure::wrap(Box::new(move |_t: f64| {
+        let win2 = window().expect("No global window found");
+        let start_ns2 = start_ns;
+        let kind2 = kind;
+        let kind_label2 = kind_label;
+        let seq2 = seq;
+
+        let cb2 = Closure::wrap(Box::new(move |_t2: f64| {
+            let perf = window().expect("No global window found").performance().unwrap();
+            let end_ns = (perf.now() * 1_000_000.0) as u64;
+
+            if current_pending_seq() != seq2 {
+                return;
+            }
+
+            if !should_log_seq(seq2) {
+                return;
+            }
+
+            let duration_ns = end_ns.saturating_sub(start_ns2);
+            let (avg_total, count_total, avg_kind, count_kind) =
+                record_visible_duration(kind2, duration_ns);
+
+            console::log_1(
+                &format!(
+                    "Click-to-visible ({0}): latest {1} ns; avg {2} ns over {3} redraws (overall avg {4} ns over {5})",
+                    kind_label2,
+                    duration_ns,
+                    avg_kind,
+                    count_kind,
+                    avg_total,
+                    count_total
+                )
+                .into(),
+            );
+        }) as Box<dyn FnMut(f64)>);
+
+        let _ = win2.request_animation_frame(cb2.as_ref().unchecked_ref());
+        cb2.forget();
+    }) as Box<dyn FnMut(f64)>);
+
+    let win1 = window().expect("No global window found");
+    let _ = win1.request_animation_frame(cb1.as_ref().unchecked_ref());
+    cb1.forget();
 }
