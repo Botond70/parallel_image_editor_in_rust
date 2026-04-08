@@ -78,16 +78,16 @@ fn apply_blur(uv: vec2<f32>, tex_size: vec2<f32>, mode: u32, window_size: u32, d
     var total_weight = 0.0;
     
     let half_window = i32(window_size) / 2;
-    let sigma = f32(window_size) / 6.0; // Standard deviation for Gaussian
+    let sigma = f32(window_size) / 6.0; //Standard deviation
     
     for (var i = -half_window; i <= half_window; i = i + 1) {
         for (var j = -half_window; j <= half_window; j = j + 1) {
             var offset = vec2<f32>(f32(i), f32(j));
             
-            // Apply direction filter
-            if (direction == 1u) { // Horizontal only
+            //Direction filter
+            if (direction == 1u) { //Horizontal
                 offset.y = 0.0;
-            } else if (direction == 2u) { // Vertical only
+            } else if (direction == 2u) { //Vertical
                 offset.x = 0.0;
             }
             

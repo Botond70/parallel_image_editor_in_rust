@@ -28,33 +28,25 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
     let mut sat_slider_value = use_signal(|| sat());
     let mut val_slider_value = use_signal(|| val());
 
-    // Blur control during HSV changes
     let mut blur_state = use_context::<BlurState>();
     let mut original_blur_size = use_signal(|| (blur_state.window_size)());
     let mut blur_restore_timeout = use_signal(|| None::<i32>);
-
-    // Function to temporarily disable blur during HSV changes
     let mut disable_blur_temporarily = move || {
-        // Store original blur size if not already stored
         if original_blur_size() == 0 {
             original_blur_size.set((blur_state.window_size)());
         }
-        // Set blur to 1 (minimal blur) during HSV changes
-        blur_state.window_size.set(1);
+        blur_state.window_size.set(1); // 1 == no blur in implementation
 
-        // Clear any existing timeout
         if let Some(timeout_id) = blur_restore_timeout() {
             let window = web_sys::window().unwrap();
             window.clear_timeout_with_handle(timeout_id);
         }
-
         // Schedule restoration of original blur after 250ms
         let closure = Closure::wrap(Box::new(move || {
             blur_state.window_size.set(original_blur_size());
-            original_blur_size.set(0); // Reset stored value
+            original_blur_size.set(0);
             blur_restore_timeout.set(None);
         }) as Box<dyn FnMut()>);
-
         let window = web_sys::window().unwrap();
         let timeout_id = window
             .set_timeout_with_callback_and_timeout_and_arguments_0(
@@ -170,11 +162,7 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
 fn ResizePanel(visibility: Signal<bool>) -> Element {
     let mut imwidth = use_context::<ResizeState>().width;
     let mut imheight = use_context::<ResizeState>().height;
-
-    // Snapshot values on open so Cancel can restore them.
     let initial_size = use_signal(|| (imwidth(), imheight()));
-
-    // Draft values: inputs update these, Save commits to global state.
     let mut draft_width = use_signal(|| imwidth());
     let mut draft_height = use_signal(|| imheight());
 
