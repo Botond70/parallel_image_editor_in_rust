@@ -1,4 +1,4 @@
-use crate::state::app_state::{CropSignal, HSVState};
+use crate::state::app_state::{BlurDirection, BlurMode, BlurState, CropSignal, HSVState};
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
 use image::DynamicImage;
@@ -16,15 +16,29 @@ use wgpu::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Globals {
-    pub hsv: [f32; 7], //28bytes data
-    pub _pad: f32,     //4bytes padding for alignment
+    pub hsv: [f32; 3], // h, s, v
+    pub crop_left: f32,
+    pub crop_right: f32,
+    pub crop_top: f32,
+    pub crop_bottom: f32,
+    pub blur_mode: u32,
+    pub blur_window_size: u32,
+    pub blur_direction: u32,
+    pub _pad: [u32; 2], // padding to align to 16 bytes (48 bytes total)
 }
 
 impl Globals {
-    pub fn new(h: f32, s: f32, v: f32, l: f32, r: f32, t: f32, b: f32) -> Self {
+    pub fn new(h: f32, s: f32, v: f32, l: f32, r: f32, t: f32, b: f32, blur_mode: u32, blur_window_size: u32, blur_direction: u32) -> Self {
         Self {
-            hsv: [h, s, v, l, r, t, b],
-            _pad: 0.0,
+            hsv: [h, s, v],
+            crop_left: l,
+            crop_right: r,
+            crop_top: t,
+            crop_bottom: b,
+            blur_mode,
+            blur_window_size,
+            blur_direction,
+            _pad: [0, 0],
         }
     }
 }
@@ -144,8 +158,16 @@ impl State {
         let right_applied = use_context::<CropSignal>().right_applied;
         let bottom_applied = use_context::<CropSignal>().bottom_applied;
         let left_applied = use_context::<CropSignal>().left_applied;
+        
+        let blur_mode = use_context::<BlurState>().mode;
+        let blur_window_size = use_context::<BlurState>().window_size;
+        let blur_direction = use_context::<BlurState>().direction;
 
-        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
+        let globals = Globals::new(
+            hue(), sat(), val(), 
+            left_applied(), right_applied(), top_applied(), bottom_applied(),
+            blur_mode() as u32, blur_window_size(), blur_direction() as u32
+        );
         self.queue
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
@@ -531,7 +553,15 @@ impl State {
         let bottom_applied = use_context::<CropSignal>().bottom_applied;
         let left_applied = use_context::<CropSignal>().left_applied;
 
-        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
+        let blur_mode = use_context::<BlurState>().mode;
+        let blur_window_size = use_context::<BlurState>().window_size;
+        let blur_direction = use_context::<BlurState>().direction;
+
+        let globals = Globals::new(
+            hue(), sat(), val(), 
+            left_applied(), right_applied(), top_applied(), bottom_applied(),
+            blur_mode() as u32, blur_window_size(), blur_direction() as u32
+        );
 
         let globals_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("globals buffer"),

@@ -3,8 +3,8 @@ use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use crate::state::app_state::{HSVState, ImageState, RedrawKind, SideBarState, WGPUSignal, ResizeState};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::redraw_metrics::{
-    current_pending_seq, record_visible_duration, snapshot_pending_click_to_visible,
-    should_log_seq,
+    current_pending_seq, mark_blur_redraw_start, record_visible_duration,
+    should_log_seq, snapshot_pending_click_to_visible,
 };
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
@@ -53,6 +53,7 @@ pub fn ImageBoard() -> Element {
 
     let mut width_signal = use_context::<ResizeState>().width;
     let mut height_signal = use_context::<ResizeState>().height;
+    let blur_redraw_request_count = use_context::<crate::state::app_state::BlurState>().redraw_request_count;
 
     #[allow(unused)]
     use_effect(move || {
@@ -183,6 +184,27 @@ pub fn ImageBoard() -> Element {
         } else if width_signal() > 0 && height_signal() > 0 {
             width_signal.set(0);
             height_signal.set(0);
+        }
+    });
+
+    use_effect(move || {
+        // Track blur redraw requests
+        let _ = blur_redraw_request_count();
+
+        if wgpu_on() && ready_signal() {
+            let perf = window().unwrap().performance().unwrap();
+            let start = (perf.now() * 1_000_000.0) as u64;
+            let seq = mark_blur_redraw_start(start);
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                wgpu_state.draw(false, None);
+                console::log_1(&"Triggered re-render from blur redraw request".into());
+            }
+            let end = (perf.now() * 1_000_000.0) as u64;
+            console::log_1(
+                &format!("Redraw time (Blur): {} nanoseconds", (end - start) as u64).into(),
+            );
+            schedule_click_to_visible_log(start, RedrawKind::Blur, seq);
         }
     });
 
@@ -404,6 +426,7 @@ fn schedule_click_to_visible_log(start_ns: u64, kind: RedrawKind, seq: u64) {
         RedrawKind::HSV => "HSV",
         RedrawKind::Crop => "Crop",
         RedrawKind::Resize => "Resize",
+        RedrawKind::Blur => "Blur",
     };
 
     let cb1 = Closure::wrap(Box::new(move |_t: f64| {

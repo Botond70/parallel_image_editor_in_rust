@@ -6,6 +6,7 @@ const KIND_NONE: u8 = 0;
 const KIND_HSV: u8 = 1;
 const KIND_CROP: u8 = 2;
 const KIND_RESIZE: u8 = 3;
+const KIND_BLUR: u8 = 4;
 
 static PENDING_START_NS: AtomicU64 = AtomicU64::new(0);
 static PENDING_KIND: AtomicU8 = AtomicU8::new(KIND_NONE);
@@ -25,11 +26,15 @@ static CROP_COUNT: AtomicU64 = AtomicU64::new(0);
 static RESIZE_SUM_NS: AtomicU64 = AtomicU64::new(0);
 static RESIZE_COUNT: AtomicU64 = AtomicU64::new(0);
 
+static BLUR_SUM_NS: AtomicU64 = AtomicU64::new(0);
+static BLUR_COUNT: AtomicU64 = AtomicU64::new(0);
+
 fn kind_to_u8(kind: RedrawKind) -> u8 {
     match kind {
         RedrawKind::HSV => KIND_HSV,
         RedrawKind::Crop => KIND_CROP,
         RedrawKind::Resize => KIND_RESIZE,
+        RedrawKind::Blur => KIND_BLUR,
     }
 }
 
@@ -38,6 +43,7 @@ fn u8_to_kind(v: u8) -> Option<RedrawKind> {
         KIND_HSV => Some(RedrawKind::HSV),
         KIND_CROP => Some(RedrawKind::Crop),
         KIND_RESIZE => Some(RedrawKind::Resize),
+        KIND_BLUR => Some(RedrawKind::Blur),
         _ => None,
     }
 }
@@ -45,6 +51,12 @@ fn u8_to_kind(v: u8) -> Option<RedrawKind> {
 pub fn mark_click_to_visible_with_start_ns(kind: RedrawKind, start_ns: u64) -> u64 {
     PENDING_START_NS.store(start_ns, Ordering::Relaxed);
     PENDING_KIND.store(kind_to_u8(kind), Ordering::Relaxed);
+    PENDING_SEQ.fetch_add(1, Ordering::Relaxed) + 1
+}
+
+pub fn mark_blur_redraw_start(start_ns: u64) -> u64 {
+    PENDING_START_NS.store(start_ns, Ordering::Relaxed);
+    PENDING_KIND.store(KIND_BLUR, Ordering::Relaxed);
     PENDING_SEQ.fetch_add(1, Ordering::Relaxed) + 1
 }
 
@@ -82,6 +94,7 @@ pub fn record_visible_duration(kind: RedrawKind, duration_ns: u64) -> (u64, u64,
         RedrawKind::HSV => record(&HSV_SUM_NS, &HSV_COUNT, duration_ns),
         RedrawKind::Crop => record(&CROP_SUM_NS, &CROP_COUNT, duration_ns),
         RedrawKind::Resize => record(&RESIZE_SUM_NS, &RESIZE_COUNT, duration_ns),
+        RedrawKind::Blur => record(&BLUR_SUM_NS, &BLUR_COUNT, duration_ns),
     };
     (avg_total, count_total, avg_kind, count_kind)
 }

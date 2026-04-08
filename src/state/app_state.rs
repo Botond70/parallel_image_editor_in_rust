@@ -7,6 +7,34 @@ pub enum RedrawKind {
     HSV,
     Crop,
     Resize,
+    Blur,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlurMode {
+    Gaussian,
+    Box,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlurDirection {
+    Omnidirectional,
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Clone, Copy)]
+pub struct BlurState {
+    pub panel_visible: Signal<bool>,
+    pub mode: Signal<BlurMode>,
+    pub window_size: Signal<u32>,
+    pub direction: Signal<BlurDirection>,
+    pub redraw_request_count: Signal<u64>,
+}
+
+#[derive(Clone, Copy)]
+pub struct FilterMenuState {
+    pub menu_visible: Signal<bool>,
 }
 
 #[derive(Clone, Copy)]

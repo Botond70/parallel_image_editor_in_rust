@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::state::app_state::{CropSignal, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
+use crate::state::app_state::{BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
 use dioxus::prelude::*;
 use image::DynamicImage;
 
@@ -75,6 +75,30 @@ pub fn use_image_state() {
         image_modified,
         ui_redraw_start_ns,
         ui_redraw_kind,
+    });
+}
+
+pub fn use_blur_state() {
+    let blur_panel_visible = use_signal(|| false);
+    let blur_mode = use_signal(|| BlurMode::Gaussian);
+    let blur_window_size = use_signal(|| 3 as u32);
+    let blur_direction = use_signal(|| BlurDirection::Omnidirectional);
+    let blur_redraw_request = use_signal(|| 0 as u64);
+
+    use_context_provider(|| BlurState {
+        panel_visible: blur_panel_visible,
+        mode: blur_mode,
+        window_size: blur_window_size,
+        direction: blur_direction,
+        redraw_request_count: blur_redraw_request,
+    });
+}
+
+pub fn use_filter_menu_state() {
+    let filter_menu_visible = use_signal(|| false);
+
+    use_context_provider(|| FilterMenuState {
+        menu_visible: filter_menu_visible,
     });
 }
 

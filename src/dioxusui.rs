@@ -3,7 +3,7 @@ use crate::components::{
     footer::FootBar, image_board::ImageBoard, menu_bar::MenuBar,
     side_bar::SideBar,
 };
-use crate::state::providers::{use_crop_state, use_hsv_state, use_image_state, use_resize_state, use_sidebar_state, use_wgpu_state};
+use crate::state::providers::{use_blur_state, use_crop_state, use_filter_menu_state, use_hsv_state, use_image_state, use_resize_state, use_sidebar_state, use_wgpu_state};
 use dioxus::prelude::*;
 use web_sys::{Window, window};
 
@@ -18,6 +18,8 @@ pub fn App() -> Element {
     use_hsv_state();
     use_sidebar_state();
     use_crop_state();
+    use_blur_state();
+    use_filter_menu_state();
     use_image_state();
 
     rsx! {

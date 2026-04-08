@@ -248,6 +248,15 @@ input[type="file"] {
     transition: 0.2s;
 }
 
+.panel-button-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    width: 100%;
+    padding: 0.5em;
+}
+
 .menubar-container {
     z-index: 10;
     position: fixed;
@@ -496,6 +505,41 @@ input[type="file"] {
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
     }
+}
+
+.filter-menu {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background-bar);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 5px;
+    z-index: 100;
+    min-width: 150px;
+    left: 100%;
+    top: 0;
+    margin-left: 5px;
+}
+
+.filter-button-container {
+    position: relative;
+}
+
+.filter-menu-item {
+    background: none;
+    border: none;
+    color: var(--button-default);
+    padding: 8px 12px;
+    text-align: left;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+.filter-menu-item:hover {
+    background-color: hsla(0, 0%, 100%, 0.13);
+    color: white;
 }
 
 .image-display {

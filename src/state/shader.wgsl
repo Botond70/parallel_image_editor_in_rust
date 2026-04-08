@@ -14,7 +14,10 @@ struct Globals {
     crop_right: f32,
     crop_top: f32,
     crop_bottom: f32,
-    _pad: f32,
+    blur_mode: u32,
+    blur_window_size: u32,
+    blur_direction: u32,
+    _pad: u32,
 };
 
 fn hsv2rgb(hsv: vec3<f32>) -> vec3<f32> {
@@ -64,6 +67,47 @@ fn hue_shift_rgb(color: vec3<f32>, hue: f32) -> vec3<f32> {
     return color * cosAngle + cross(k, color) * sinAngle + k * dot(k, color) * (1.0 - cosAngle);
 }
 
+// Gaussian kernel weights for different window sizes
+fn gaussian_weight(distance: f32, sigma: f32) -> f32 {
+    return exp(-0.5 * distance * distance / (sigma * sigma)) / (sigma * sqrt(2.0 * 3.14159));
+}
+
+fn apply_blur(uv: vec2<f32>, tex_size: vec2<f32>, mode: u32, window_size: u32, direction: u32) -> vec3<f32> {
+    let texel_size = 1.0 / tex_size;
+    var result = vec3<f32>(0.0);
+    var total_weight = 0.0;
+    
+    let half_window = i32(window_size) / 2;
+    let sigma = f32(window_size) / 6.0; // Standard deviation for Gaussian
+    
+    for (var i = -half_window; i <= half_window; i = i + 1) {
+        for (var j = -half_window; j <= half_window; j = j + 1) {
+            var offset = vec2<f32>(f32(i), f32(j));
+            
+            // Apply direction filter
+            if (direction == 1u) { // Horizontal only
+                offset.y = 0.0;
+            } else if (direction == 2u) { // Vertical only
+                offset.x = 0.0;
+            }
+            
+            let sample_uv = uv + offset * texel_size;
+            let sample_color = textureSample(t_diffuse, s_diffuse, sample_uv).rgb;
+            
+            var weight = 1.0;
+            if (mode == 0u) { // Gaussian
+                let distance = length(offset);
+                weight = gaussian_weight(distance, sigma);
+            } // Box blur uses weight = 1.0
+            
+            result += sample_color * weight;
+            total_weight += weight;
+        }
+    }
+    
+    return result / total_weight;
+}
+
 // Vertex shader
 
 @vertex
@@ -94,7 +138,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let crop_size = max_uv - min_uv;
     let cropped_uv = min_uv + in.tex_coords * crop_size;
-    let tex_color = textureSample(t_diffuse, s_diffuse, cropped_uv).rgb;
+    
+    // Get texture dimensions
+    let tex_size = vec2<f32>(textureDimensions(t_diffuse));
+    
+    var tex_color = vec3<f32>(0.0);
+    
+    // Apply blur if window size > 1
+    if (globals.blur_window_size > 1u) {
+        tex_color = apply_blur(cropped_uv, tex_size, globals.blur_mode, globals.blur_window_size, globals.blur_direction);
+    } else {
+        tex_color = textureSample(t_diffuse, s_diffuse, cropped_uv).rgb;
+    }
+    
     let shifted = hue_shift_rgb(tex_color, hue);
     var hsv_out = rgb2hsv(shifted);
     hsv_out.y *= globals.hsv.y + 1.0;
