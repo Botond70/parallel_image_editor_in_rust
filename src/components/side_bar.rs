@@ -11,7 +11,7 @@ use web_sys::{console, window};
 const ADJUST_BUTTON_SVG: Asset = asset!("/assets/adjust_button.svg");
 const CROP_BUTTON_SVG: Asset = asset!("/assets/crop_button.svg");
 const RESIZE_BUTTON_SVG: Asset = asset!("/assets/resize_button.svg");
-const BRUSH_BUTTON_SVG: Asset = asset!("/assets/brush_button.svg");
+const FILTER_BUTTON_SVG: Asset = asset!("/assets/filter_button.svg");
 const DRAG_BUTTON_SVG: Asset = asset!("/assets/drag_button.svg");
 
 #[component]
@@ -124,46 +124,78 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
 }
 
 #[component]
-fn ResizePanel() -> Element {
+fn ResizePanel(visibility: Signal<bool>) -> Element {
     let mut imwidth = use_context::<ResizeState>().width;
-    let widthval = imwidth();
     let mut imheight = use_context::<ResizeState>().height;
-    let heightval = imheight();
+
+    // Snapshot values on open so Cancel can restore them.
+    let initial_size = use_signal(|| (imwidth(), imheight()));
+
+    // Draft values: inputs update these, Save commits to global state.
+    let mut draft_width = use_signal(|| imwidth());
+    let mut draft_height = use_signal(|| imheight());
 
     rsx! {
         DraggableResizeablePanel {
-            width: 200.0,
-            height: 200.0,
-            min_height: 200.0,
-            min_width: 200.0,
-            max_width: 200.0,
-            max_height: 200.0,
+            width: 230.0,
+            height: 180.0,
+            min_height: 180.0,
+            min_width: 230.0,
+            max_width: 230.0,
+            max_height: 180.0,
             title: String::from("Resize Image"),
             PanelContent:
                 rsx! {
-                    input {
-                        type: "text",
-                        value: "{widthval}",
-                        placeholder: "Width",
-                        oninput: move |e| {
-                            if let Ok(parsed) = e.value().parse::<u32>() {
-                                let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
-                                mark_click_to_visible_with_start_ns(RedrawKind::Resize, start_ns);
-                                imwidth.set(parsed);
+                    div { class: "resize-input-row",
+                        input {
+                            class: "styled-input",
+                            r#type: "text",
+                            inputmode: "numeric",
+                            value: "{draft_width()}",
+                            placeholder: "Width",
+                            oninput: move |e| {
+                                if let Ok(parsed) = e.value().parse::<u32>() {
+                                    draft_width.set(parsed);
+                                }
+                            }
+                        }
+                        p { "x" }
+                        input {
+                            class: "styled-input",
+                            r#type: "text",
+                            inputmode: "numeric",
+                            value: "{draft_height()}",
+                            placeholder: "Height",
+                            oninput: move |e| {
+                                if let Ok(parsed) = e.value().parse::<u32>() {
+                                    draft_height.set(parsed);
+                                }
                             }
                         }
                     }
-                    p { "x" }
-                    input {
-                        type: "text",
-                        value: "{heightval}",
-                        placeholder: "Height",
-                        oninput: move |e| {
-                            if let Ok(parsed) = e.value().parse::<u32>() {
+                    div { class: "button-container",
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
                                 let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
                                 mark_click_to_visible_with_start_ns(RedrawKind::Resize, start_ns);
-                                imheight.set(parsed);
-                            }
+                                imwidth.set(draft_width());
+                                imheight.set(draft_height());
+                                visibility.set(false);
+                            },
+                            "Save"
+                        }
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
+                                let (w, h) = initial_size();
+                                draft_width.set(w);
+                                draft_height.set(h);
+                                imwidth.set(w);
+                                imheight.set(h);
+                                visibility.set(false);
+                            },
+                            "Cancel"
                         }
                     }
                 }
@@ -316,7 +348,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "Crop" }
             }
-            button { class: "btn",
+            button { class: if resize_panel_visibility() { "btn on" } else { "btn" },
             onclick: move |_| {
                     resize_panel_visibility.set(!resize_panel_visibility());
                 },
@@ -327,9 +359,9 @@ pub fn SideBar() -> Element {
             }
             button { class: "btn",
                 img { class: "button-svg-container",
-                    src: BRUSH_BUTTON_SVG,
+                    src: FILTER_BUTTON_SVG,
                 }
-                span { class: "button-text", "Brush" }
+                span { class: "button-text", "Filter" }
             }
             button { class: if image_is_draggable() { "btn on" } else { "btn" },
                 onclick: move |_| {
@@ -352,7 +384,7 @@ pub fn SideBar() -> Element {
             }
         }
         if resize_panel_visibility() {
-            ResizePanel {  }
+            ResizePanel { visibility: resize_panel_visibility }
         }
     }
 }

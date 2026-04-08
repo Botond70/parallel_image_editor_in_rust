@@ -47,8 +47,6 @@ pub fn MenuBar() -> Element {
                 div { class: "dropdown-content",
                     button { onclick: toggle,
                         class: "btn", "Toggle Sidebar" }
-                    button { class: "btn", "Click me!" }
-                    button { class: "btn", "Click me!" }
                 }
             }
             Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
