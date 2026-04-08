@@ -15,25 +15,23 @@ const BRUSH_BUTTON_SVG: Asset = asset!("/assets/brush_button.svg");
 const DRAG_BUTTON_SVG: Asset = asset!("/assets/drag_button.svg");
 
 #[component]
-pub fn HSVPanel() -> Element {
+pub fn HSVPanel(visibility: Signal<bool>) -> Element {
     let mut hue = use_context::<HSVState>().hue;
-    let mut hue_slider_value = use_signal(|| 0.0);
     let mut sat = use_context::<HSVState>().saturation;
-    let mut sat_slider_value = use_signal(|| 0.0);
     let mut val = use_context::<HSVState>().value;
-    let mut val_slider_value = use_signal(|| 0.0);
 
-    let perf = window().unwrap().performance().unwrap();
-    let nanos = (perf.now() * 1_000_000.0) as u64;
-    console::log_1(&format!("HSVPanel rendered at {} nanoseconds", nanos).into());
-    let nanos_now = (perf.now() * 1_000_000.0) as u64;
-    console::log_1(&format!("HSVPanel render time: {} nanoseconds", nanos_now - nanos).into());
+    let initial_hsv = use_signal(|| (hue(), sat(), val()));
+
+    let mut hue_slider_value = use_signal(|| hue() / std::f32::consts::PI);
+    let mut sat_slider_value = use_signal(|| sat());
+    let mut val_slider_value = use_signal(|| val());
 
     rsx! {
         DraggableResizeablePanel {
             width: 500.0,
-            height: 200.0,
+            height: 220.0,
             max_height: 220.0,
+            min_height: 220.0,
             title: String::from("HSV"),
             PanelContent:
                 rsx! {
@@ -43,7 +41,7 @@ pub fn HSVPanel() -> Element {
                             class: "styled-slider",
                             type: "range",
                             min: -1.0,
-                            value:"{hue_slider_value}" ,
+                            value: "{hue_slider_value()}",
                             max: 1.0,
                             step: 0.001,
                             oninput: move |e| {
@@ -55,7 +53,7 @@ pub fn HSVPanel() -> Element {
                                 }
                             },
                         }
-                        p { class: "slider-progress", "{hue_slider_value * 100.0:.2}" }
+                        p { class: "slider-progress", "{hue_slider_value() * 100.0:.2}" }
                     },
                     div { class: "panel-slider-container",
                         p{ "SAT" },
@@ -63,7 +61,7 @@ pub fn HSVPanel() -> Element {
                             class: "styled-slider",
                             type: "range",
                             min: -1.0,
-                            value:"{sat_slider_value}",
+                            value: "{sat_slider_value()}",
                             max: 1.0,
                             step: 0.001,
                             oninput: move |e| {
@@ -75,7 +73,7 @@ pub fn HSVPanel() -> Element {
                                 }
                             },
                         }
-                        p { class: "slider-progress", "{sat_slider_value}" }
+                        p { class: "slider-progress", "{sat_slider_value()}" }
                     },
                     div { class: "panel-slider-container",
                         p{ "VAL" },
@@ -83,7 +81,7 @@ pub fn HSVPanel() -> Element {
                             class: "styled-slider",
                             type: "range",
                             min: -1.0,
-                            value:"{val_slider_value}" ,
+                            value: "{val_slider_value()}",
                             max: 10.0,
                             step: 0.001,
                             oninput: move |e| {
@@ -95,7 +93,30 @@ pub fn HSVPanel() -> Element {
                                 }
                             },
                         }
-                        p { class: "slider-progress", "{val_slider_value}" }
+                        p { class: "slider-progress", "{val_slider_value()}" }
+                    }
+                    div { class: "button-container",
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
+                                visibility.set(false);
+                            },
+                            "Save"
+                        }
+                        button {
+                            class: "btn-styled",
+                            onclick: move |_evt| {
+                                let (initial_hue, initial_sat, initial_val) = initial_hsv();
+                                hue.set(initial_hue);
+                                sat.set(initial_sat);
+                                val.set(initial_val);
+                                hue_slider_value.set(initial_hue / std::f32::consts::PI);
+                                sat_slider_value.set(initial_sat);
+                                val_slider_value.set(initial_val);
+                                visibility.set(false);
+                            },
+                            "Cancel"
+                        }
                     }
                 }
         }
@@ -321,7 +342,9 @@ pub fn SideBar() -> Element {
             }
         }
         if hsv_is_visible() {
-            HSVPanel {  }
+            HSVPanel { 
+                visibility: hsv_is_visible,
+             }
         }
         if crop_panel_visibility() {
             CropPanel { 
