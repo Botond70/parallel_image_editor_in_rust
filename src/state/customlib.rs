@@ -1,16 +1,12 @@
-use crate::state::app_state::HSVState;
+use crate::state::app_state::{CropSignal, HSVState};
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
-use dioxus::html::output;
-use dioxus::html::u::is;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::{ImageBuffer, Rgba};
 use std::collections::VecDeque;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{self, RecvError};
+use std::sync::mpsc::{self};
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread::spawn;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::*;
@@ -20,14 +16,14 @@ use wgpu::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Globals {
-    pub hsv: [f32; 3], //12bytes data
+    pub hsv: [f32; 7], //28bytes data
     pub _pad: f32,     //4bytes padding for alignment
 }
 
 impl Globals {
-    pub fn new(h: f32, s: f32, v: f32) -> Self {
+    pub fn new(h: f32, s: f32, v: f32, l: f32, r: f32, t: f32, b: f32) -> Self {
         Self {
-            hsv: [h, s, v],
+            hsv: [h, s, v, l, r, t, b],
             _pad: 0.0,
         }
     }
@@ -39,14 +35,12 @@ pub struct Filesave_config {
 pub struct State {
     tx: Sender<DynamicImage>,
     rx: Receiver<DynamicImage>,
-    pub skips: u32,
     pub img_vec: VecDeque<DynamicImage>,
     pub img_index: u32,
     pub surface: wgpu::Surface<'static>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
-    pub is_surface_configured: bool,
     pub render_pipeline: wgpu::RenderPipeline,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
@@ -57,6 +51,13 @@ pub struct State {
 }
 
 impl State {
+    pub fn resize(&mut self, new_width: u32, new_height: u32) {
+        if new_width > 0 && new_height > 0 {
+            self.config.width = new_width;
+            self.config.height = new_height;
+        }
+    }
+
     pub fn load_image_to_gpu(&mut self) {
         let diffuse_image = self.img_vec.get(self.img_index as usize).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
@@ -136,12 +137,15 @@ impl State {
             self.load_image_to_gpu(); // only use this when image is changed
         }
 
-        // read hsv values
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
+        let top_applied = use_context::<CropSignal>().top_applied;
+        let right_applied = use_context::<CropSignal>().right_applied;
+        let bottom_applied = use_context::<CropSignal>().bottom_applied;
+        let left_applied = use_context::<CropSignal>().left_applied;
 
-        let globals = Globals::new(hue(), sat(), val());
+        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
         self.queue
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
@@ -522,8 +526,12 @@ impl State {
         let hue = use_context::<HSVState>().hue;
         let sat = use_context::<HSVState>().saturation;
         let val = use_context::<HSVState>().value;
+        let top_applied = use_context::<CropSignal>().top_applied;
+        let right_applied = use_context::<CropSignal>().right_applied;
+        let bottom_applied = use_context::<CropSignal>().bottom_applied;
+        let left_applied = use_context::<CropSignal>().left_applied;
 
-        let globals = Globals::new(hue(), sat(), val());
+        let globals = Globals::new(hue(), sat(), val(), left_applied(), right_applied(), top_applied(), bottom_applied());
 
         let globals_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("globals buffer"),
@@ -620,14 +628,12 @@ impl State {
         State {
             tx: tx,
             rx: rx,
-            skips: 0,
             img_vec: img_vec,
             img_index: img_index,
             surface: surface,
             device: device,
             queue: queue,
             config: config,
-            is_surface_configured: false,
             render_pipeline: render_pipeline,
             vertex_buffer: vertex_buffer,
             index_buffer: index_buffer,

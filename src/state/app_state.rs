@@ -1,41 +1,19 @@
 use std::collections::VecDeque;
-
 use dioxus::prelude::*;
 use image::DynamicImage;
 
-#[derive(Clone, Copy)]
-pub struct SideBarVisibility {
-    pub state: Signal<bool>,
-}
-
-#[derive(Clone, Copy)]
-pub struct ImageZoom {
-    pub zoom: Signal<i64>,
-    pub limits: Signal<(i64, i64)>,
-}
-
-#[derive(Clone, Copy)]
-pub struct NextImage {
-    pub pressed: Signal<bool>,
-    pub count: Signal<u32>,
-}
-#[derive(Clone, Copy)]
-pub struct ImageVec {
-    pub vector: Signal<VecDeque<DynamicImage>>,
-    pub base64_vector: Signal<VecDeque<String>>,
-    pub curr_image_index: Signal<usize>,
+#[derive(Clone, Copy, Debug)]
+pub enum RedrawKind {
+    HSV,
+    Crop,
+    Resize,
 }
 
 #[derive(Clone, Copy)]
 pub struct WGPUSignal {
     pub signal: Signal<bool>,
+    pub ready_signal: Signal<bool>,
     pub save_signal: Signal<i64>,
-}
-
-#[derive(Clone, Copy)]
-pub struct GalleryState {
-    pub grid_size: Signal<String>,
-    pub visibility: Signal<bool>,
 }
 
 #[derive(Clone, Copy)]
@@ -47,11 +25,41 @@ pub struct HSVState {
 }
 
 #[derive(Clone, Copy)]
-pub struct TestPanelVisibility {
-    pub visibility: Signal<bool>,
+pub struct ResizeState {
+    pub panel_visible: Signal<bool>,
+    pub width: Signal<u32>,
+    pub height: Signal<u32>,
 }
 
 #[derive(Clone, Copy)]
-pub struct DragSignal {
-    pub can_drag: Signal<bool>,
+pub struct CropSignal {
+    pub left: Signal<f32>,
+    pub right: Signal<f32>,
+    pub top: Signal<f32>,
+    pub bottom: Signal<f32>,
+    pub left_applied: Signal<f32>,
+    pub right_applied: Signal<f32>,
+    pub top_applied: Signal<f32>,
+    pub bottom_applied: Signal<f32>,
+    pub cropbox_element: Signal<Option<web_sys::Element>>,
+}
+
+#[derive(Clone, Copy)]
+pub struct SideBarState {
+    pub sidebar_is_visible: Signal<bool>,
+    pub is_cropping: Signal<bool>,
+    pub is_dragging: Signal<bool>,
+}
+
+#[derive(Clone, Copy)]
+pub struct ImageState {
+    pub zoom: Signal<i64>,
+    pub limits: Signal<(i64, i64)>,
+    pub image_vector: Signal<VecDeque<DynamicImage>>,
+    pub base64_vector: Signal<VecDeque<String>>,
+    pub curr_image_index: Signal<usize>,
+    pub img_size: Signal<(f64, f64)>,
+    pub image_modified: Signal<bool>,
+    pub ui_redraw_start_ns: Signal<Option<u64>>,
+    pub ui_redraw_kind: Signal<Option<RedrawKind>>,
 }

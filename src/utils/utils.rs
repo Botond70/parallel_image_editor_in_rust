@@ -1,5 +1,5 @@
 use crate::dioxus_elements::geometry::WheelDelta;
-use image::ImageEncoder; // Import the trait to bring encode into scope
+use image::{ImageEncoder};
 use image::codecs::png::PngEncoder;
 use image::{ImageBuffer, Rgba};
 use wasm_bindgen::prelude::*;

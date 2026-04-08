@@ -10,7 +10,12 @@ struct VertexOutput {
 
 struct Globals {
     hsv: vec3<f32>,
-}
+    crop_left: f32,
+    crop_right: f32,
+    crop_top: f32,
+    crop_bottom: f32,
+    _pad: f32,
+};
 
 fn hsv2rgb(hsv: vec3<f32>) -> vec3<f32> {
     let h = hsv.x * 6.0;
@@ -46,8 +51,6 @@ fn rgb2hsv(c: vec3<f32>) -> vec3<f32> {
         h = h / 6.0;
         if h < 0.0 { h = h + 1.0; }
     };
-
-
     let v = mx;
     if mx == 0.0 { return vec3<f32>(h, 0.0, v);} else { return vec3<f32>(h, d / mx, v);};
 }
@@ -86,11 +89,17 @@ var<uniform> globals: Globals;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let hue = globals.hsv.x;
-    let tex_color = textureSample(t_diffuse, s_diffuse, in.tex_coords).rgb;
+    let min_uv = vec2<f32>(globals.crop_left, globals.crop_top);
+    let max_uv = vec2<f32>(1.0 - globals.crop_right, 1.0 - globals.crop_bottom);
+
+    let crop_size = max_uv - min_uv;
+    let cropped_uv = min_uv + in.tex_coords * crop_size;
+    let tex_color = textureSample(t_diffuse, s_diffuse, cropped_uv).rgb;
     let shifted = hue_shift_rgb(tex_color, hue);
     var hsv_out = rgb2hsv(shifted);
-    hsv_out.y *= globals.hsv.y + 0.9;
+    hsv_out.y *= globals.hsv.y + 1.0;
     hsv_out.z *= globals.hsv.z + 1.0;
+
     let rgb_out = hsv2rgb(hsv_out);
     return vec4<f32>(rgb_out, 1.0);
 }

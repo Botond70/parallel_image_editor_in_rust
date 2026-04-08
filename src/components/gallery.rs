@@ -1,10 +1,8 @@
 use crate::app_router::Route;
-use crate::state::app_state::{GalleryState, ImageVec};
-use dioxus::html::col;
-use dioxus::html::g::dangerous_inner_html;
+use crate::state::app_state::{ImageState};
+use image::GenericImageView;
 use web_sys::console;
 use dioxus::prelude::*;
-use image::GenericImageView;
 const BACK_BUTTON: Asset = asset!("/assets/back-button.svg");
 
 const GRID_SIZE_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='size-6'>
@@ -17,9 +15,8 @@ const CHEVRON_DOWN_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='no
 ";
 
 #[component]
-fn GalleryHeader() -> Element {
-    let mut grid_size = use_context::<GalleryState>().grid_size;
-    let mut dropdown_visible = use_context::<GalleryState>().visibility;
+fn GalleryHeader(grid_size: Signal<String>) -> Element {
+    let mut dropdown_visible = use_signal(|| false);
     let visibility = if dropdown_visible() {
         "display: flex;"
     } else {
@@ -60,10 +57,11 @@ fn GalleryHeader() -> Element {
 
 #[component]
 pub fn Gallery() -> Element {
-    let img_vec_base64 = use_context::<ImageVec>().base64_vector;
-    let img_vec = use_context::<ImageVec>().vector;
-    let mut curr_index = use_context::<ImageVec>().curr_image_index;
-    let grid_size = use_context::<GalleryState>().grid_size;
+    let img_vec_base64 = use_context::<ImageState>().base64_vector;
+    let image_data_q = use_context::<ImageState>().image_vector;
+    let mut image_size = use_context::<ImageState>().img_size;
+    let mut curr_index = use_context::<ImageState>().curr_image_index;
+    let grid_size = use_signal(|| String::from("medium"));
     let img_vector = img_vec_base64();
 
     let (column_width, image_width, image_height) = match &*grid_size() {
@@ -73,32 +71,42 @@ pub fn Gallery() -> Element {
         _ => (400, 360, 180)
     };
 
-    console::log_1(&format!("Current index: {}", curr_index()).into());
+    let mut handle_onclick = move |index: usize| {
+        curr_index.set(index);
+        let image_q = image_data_q();
+        let currently_selected_image = image_q.get(index).expect("Error during ondrop");
+        image_size.set((
+            currently_selected_image.dimensions().0 as f64,
+            currently_selected_image.dimensions().1 as f64
+        ));
+        console::log_1(&format!("Clicked image index: {}", index).into());
+    };
 
     rsx! {
         div { class: "gallery-page",
-            GalleryHeader { }
+            GalleryHeader { 
+                grid_size,
+            }
             div { class: "image-display-container",
                 style: format!("grid-template-columns: repeat(auto-fit, minmax({}px, 1fr));", column_width),
                 {
                     img_vector.iter().enumerate().map(|(index, img_url)| {
                         rsx! (
-                                div { class: "image-display",
-                                    div { class: "is-selected-wrapper",
-                                        style: if index == curr_index() { "background-color: rgba(200, 200, 200, 0.5); scale: 1.1;"},
-                                        Link { to: Route::WorkSpace,
-                                            img {
-                                                key: index,
-                                                style: format!("width: {}px; height: {}px;", image_width, image_height),
-                                                onclick: move |_| {
-                                                    curr_index.set(index);
-                                                    console::log_1(&format!("Clicked image index: {}", index).into());
-                                                },
-                                                src: "{img_url}"
-                                            }
+                            div { class: "image-display",
+                                div { class: "is-selected-wrapper",
+                                    style: if index == curr_index() { "background-color: rgba(200, 200, 200, 0.5); scale: 1.1;"},
+                                    Link { to: Route::WorkSpace,
+                                        img {
+                                            key: index,
+                                            style: format!("width: {}px; height: {}px;", image_width, image_height),
+                                            onclick: move |_| {
+                                                handle_onclick(index);
+                                            },
+                                            src: "{img_url}"
                                         }
                                     }
                                 }
+                            }
                         )
                     })
                 }

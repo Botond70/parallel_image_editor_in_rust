@@ -1,11 +1,15 @@
+use crate::components::cropbox::CropBox;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{DragSignal, HSVState, ImageVec, ImageZoom, NextImage, WGPUSignal};
+use crate::state::app_state::{HSVState, ImageState, RedrawKind, SideBarState, WGPUSignal, ResizeState};
 use crate::state::customlib::{Filesave_config, State};
+use crate::utils::redraw_metrics::{
+    current_pending_seq, record_visible_duration, snapshot_pending_click_to_visible,
+    should_log_seq,
+};
 use crate::utils::renderer::start_wgpu;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::html::g::{scale, transform_origin};
 use dioxus::{html::HasFileData, prelude::*};
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::cell::RefCell;
@@ -13,37 +17,42 @@ use std::collections::VecDeque;
 use std::io::Cursor;
 use std::rc::Rc;
 use web_sys::{console, window};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 
 #[component]
 pub fn ImageBoard() -> Element {
-    let mut zoom_signal = use_context::<ImageZoom>().zoom;
-    let zoom_limits = use_context::<ImageZoom>().limits;
+    let mut zoom_signal = use_context::<ImageState>().zoom;
+    let zoom_limits = use_context::<ImageState>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
-    let mut image_data_q = use_context::<ImageVec>().vector;
-    let mut image_vector_base64 = use_context::<ImageVec>().base64_vector;
-    let mut curr_index = use_context::<ImageVec>().curr_image_index;
+    let mut image_data_q = use_context::<ImageState>().image_vector;
+    let mut image_vector_base64 = use_context::<ImageState>().base64_vector;
+    let curr_index = use_context::<ImageState>().curr_image_index;
+    let mut image_modified = use_context::<ImageState>().image_modified;
     let mut translation = use_signal(|| (0.0, 0.0));
     let mut is_dragging = use_signal(|| false);
-    let mut can_drag = use_context::<DragSignal>().can_drag;
+    let can_drag = use_context::<SideBarState>().is_dragging;
     let mut start_position = use_signal(|| (0.0, 0.0));
     let get_viewport_size = || {
         let window = window().expect("No global window found.");
-        let width = window.inner_width().unwrap();
-        let height = window.inner_height().unwrap();
-        (width.as_f64().unwrap(), height.as_f64().unwrap())
+        let win_width = window.inner_width().unwrap();
+        let win_height = window.inner_height().unwrap();
+        (win_width.as_f64().unwrap(), win_height.as_f64().unwrap())
     };
     let mut viewport_size = use_signal(|| get_viewport_size());
-    let mut image_size = use_signal(|| (0.0, 0.0));
+    let mut image_size = use_context::<ImageState>().img_size;
     let mut wgpu_on = use_context::<WGPUSignal>().signal;
-    let mut next_img_signal = use_context::<NextImage>().count;
+    let mut ready_signal = use_context::<WGPUSignal>().ready_signal;
     let mut draw_signal = use_signal(|| false);
-    let mut ready_signal = use_signal(|| false);
     let mut hue = use_context::<HSVState>().hue;
     let mut sat = use_context::<HSVState>().saturation;
     let mut val = use_context::<HSVState>().value;
     let zoom_speed = 1.15;
     let mut wgpu_state_signal = use_signal::<Option<Rc<RefCell<State>>>>(|| None);
     let mut save_signal = use_context::<WGPUSignal>().save_signal;
+
+    let mut width_signal = use_context::<ResizeState>().width;
+    let mut height_signal = use_context::<ResizeState>().height;
 
     #[allow(unused)]
     use_effect(move || {
@@ -57,11 +66,8 @@ pub fn ImageBoard() -> Element {
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
                 let first_img = image_datas.get(curr_index()).unwrap();
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
-
-                image_size.set((
-                    first_img.dimensions().0 as f64,
-                    first_img.dimensions().1 as f64,
-                ));
+                width_signal.set(first_img.dimensions().0);
+                height_signal.set(first_img.dimensions().1);
                 console::log_1(&"Started WGPU".into());
                 console::log_1(&format!("Images: {}", image_datas.len()).into());
                 let mut wgpusender = state.borrow().sender();
@@ -72,26 +78,66 @@ pub fn ImageBoard() -> Element {
                 }
                 state.borrow_mut().receive().await;
                 state.borrow_mut().set_index(curr_index() as u32);
-                ready_signal.set(true);
                 state.borrow_mut().draw(true, None);
                 wgpu_state_signal.set(Some(state.clone()));
+                ready_signal.set(true);
                 console::log_1(&"Drew first image".into());
             });
         };
     });
 
     use_effect(move || {
-        // track hue
-        let hue = hue();
-        let saturation = sat();
-        let value = val();
+        // track hue, saturation, and value
+        let _ = hue();
+        let _ = sat();
+        let _ = val();
 
         if wgpu_on() && ready_signal() {
+            let perf = window().unwrap().performance().unwrap();
+            let start = (perf.now() * 1_000_000.0) as u64;
             if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                 let mut wgpu_state = wgpu_state_rc.borrow_mut();
                 wgpu_state.draw(false, None);
                 console::log_1(&"Triggered re-render from HSV change".into());
             }
+            let end = (perf.now() * 1_000_000.0) as u64;
+            console::log_1(
+                &format!("Redraw time (HSV): {} nanoseconds", (end - start) as u64).into(),
+            );
+            if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                if matches!(kind, RedrawKind::HSV) {
+                    schedule_click_to_visible_log(start_ns, kind, seq);
+                }
+            }
+        }
+    });
+
+    use_effect(move || {
+        // Reload image when it has been modified
+        if image_modified() {
+            if wgpu_on() && ready_signal() {
+                if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                    let mut wgpu_state = wgpu_state_rc.borrow_mut();
+                    wgpu_state.img_vec = image_data_q.cloned();
+                    let perf = window().unwrap().performance().unwrap();
+                    let start = (perf.now() * 1_000_000.0) as u64;
+                    wgpu_state.draw(true, None);
+                    let end = (perf.now() * 1_000_000.0) as u64;
+                    console::log_1(&"Triggered re-render from image modification".into());
+                    console::log_1(
+                        &format!("Redraw time (Crop): {} nanoseconds", (end - start) as u64).into(),
+                    );
+                    if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                        if matches!(kind, RedrawKind::Crop) {
+                            schedule_click_to_visible_log(start_ns, kind, seq);
+                        }
+                    }
+                }
+            }
+
+            spawn(async move {
+                image_modified.set(false);
+            });
         }
     });
 
@@ -110,64 +156,161 @@ pub fn ImageBoard() -> Element {
         }
     });
 
+    use_effect(move || {
+        if wgpu_on() && ready_signal() && width_signal() > 0 && height_signal() > 0 {
+            if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+                let mut wgpu_state = wgpu_state_rc.borrow_mut();
+
+                wgpu_state.resize(width_signal(), height_signal());
+                console::log_1(&"Triggered from resize signal".into());
+                image_size.set((width_signal() as f64, height_signal() as f64));
+                console::log_1(
+                    &format!("image_size: {} x {}", image_size().0, image_size().1).into(),
+                );
+                let perf = window().unwrap().performance().unwrap();
+                let start = (perf.now() * 1_000_000.0) as u64;
+                wgpu_state.draw(false, None);
+                let end = (perf.now() * 1_000_000.0) as u64;
+                console::log_1(
+                    &format!("Redraw time (Resize): {} nanoseconds", (end - start) as u64).into(),
+                );
+                if let Some((start_ns, kind, seq)) = snapshot_pending_click_to_visible() {
+                    if matches!(kind, RedrawKind::Resize) {
+                        schedule_click_to_visible_log(start_ns, kind, seq);
+                    }
+                }
+            }
+        } else if width_signal() > 0 && height_signal() > 0 {
+            width_signal.set(0);
+            height_signal.set(0);
+        }
+    });
+
+    let mut handle_wheel = move |evt: Event<WheelData>| {
+        evt.prevent_default();
+
+        let delta = get_scroll_value(evt.delta());
+
+        let old_scale = zoom_signal() as f64 / 100.0;
+        let new_scale = if delta > 0.0 {
+            (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
+        } else {
+            (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
+        };
+
+        // check if zoom is at limit
+        let new_zoom = (new_scale * 100.0).round() as i64;
+        if new_zoom == zoom_signal() {
+            return;
+        }
+
+        let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
+        let rect = canvas_el.get_bounding_client_rect();
+        let rect_left = rect.left();
+        let rect_top = rect.top();
+
+        let client_x = evt.coordinates().client().x;
+        let client_y = evt.coordinates().client().y;
+
+        let (tx, ty) = translation();
+
+        // calculate the position of the mouse relative to our canvas
+        let local_trans_x = client_x - rect_left;
+        let local_trans_y = client_y - rect_top;
+
+        // calculate the new translation, taking scale into account
+        let ratio = new_scale / old_scale;
+        let new_tx = tx + (1.0 - ratio) * local_trans_x;
+        let new_ty = ty + (1.0 - ratio) * local_trans_y;
+
+        // clamp to viewport using new scale
+        let (clamped_tx, clamped_ty) = clamp_translate_value(
+            new_tx,
+            new_ty,
+            viewport_size(),
+            (image_size().0 * new_scale, image_size().1 * new_scale),
+        );
+
+        translation.set((clamped_tx, clamped_ty));
+        zoom_signal.set(new_zoom);
+    };
+
+    let mut handle_drag = move |evt: Event<MouseData>| {
+        is_dragging.set(true);
+        start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+        viewport_size.set(get_viewport_size());
+    };
+
+    let mut handle_mousemove = move |evt: Event<MouseData>| {
+        let (start_x, start_y) = (start_position().0, start_position().1);
+        let dx = evt.coordinates().client().x - start_x;
+        let dy = evt.coordinates().client().y - start_y;
+        start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
+        let (tx, ty) = translation();
+        let clamped_translation = clamp_translate_value(tx + dx, ty + dy, viewport_size(), (image_size().0 * scale_value, image_size().1 * scale_value));
+        translation.set((clamped_translation.0, clamped_translation.1));
+    };
+
+    let mut handle_ondrop = move |evt: Event<DragData>| {
+        let file_engine = evt.files().unwrap();
+        let file_names = file_engine.files();
+
+        zoom_signal.set(100);
+
+        spawn(async move {
+            wgpu_on.set(false);
+            draw_signal.set(false);
+            ready_signal.set(false);
+            let mut image_datas = VecDeque::<DynamicImage>::new();
+            let mut image_datas_base64 = VecDeque::<String>::new();
+            for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
+                match load_from_memory(&bytes) {
+                    Ok(img) => {
+                        let max_width = 480;
+                        let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
+                        let rgb_img = resized.to_rgb8();
+                        let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
+                        let mut cursor = Cursor::new(Vec::new());
+                        if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
+                            println!("Error during formatting: {err:?}");
+                        }
+
+                        let jpg_bytes = cursor.into_inner();
+                        let base64_str = base64_engine.encode(&jpg_bytes);
+
+                        image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
+                        image_datas.push_back(img);
+                    },
+                    Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
+                }
+            }}
+            let mut img_vec = image_data_q();
+            img_vec.append(&mut image_datas);
+            image_data_q.set(img_vec);
+            let mut img_vec_base64 = image_vector_base64();
+            img_vec_base64.append(&mut image_datas_base64);
+            image_vector_base64.set(img_vec_base64);
+            let image_q = image_data_q();
+            let currently_selected_image = image_q.get(curr_index()).expect("Error during ondrop");
+            image_size.set((
+                currently_selected_image.dimensions().0 as f64,
+                currently_selected_image.dimensions().1 as f64
+            ));
+            wgpu_on.set(true);
+        });
+    };
+
     rsx! {
         div { class: "image-container",
             style: if is_dragging() { "cursor: grabbing;" } else {"cursor: default;"},
             onwheel: move |evt| {
                 if wgpu_on() {
-                    evt.prevent_default();
-
-                    let delta = get_scroll_value(evt.delta());
-
-                    let old_scale = zoom_signal() as f64 / 100.0;
-                    let new_scale = if delta > 0.0 {
-                        (old_scale / zoom_speed).max(zoom_limits().0 as f64 / 100.0)
-                    } else {
-                        (old_scale * zoom_speed).min(zoom_limits().1 as f64 / 100.0)
-                    };
-
-                    // check if zoom is at limit
-                    let new_zoom = (new_scale * 100.0).round() as i64;
-                    if new_zoom == zoom_signal() {
-                        return;
-                    }
-
-                    let canvas_el = GLOBAL_WINDOW_HANDLE().document().unwrap().get_element_by_id("image-board").expect("Cannot find canvas element.");
-                    let rect = canvas_el.get_bounding_client_rect();
-                    let rect_left = rect.left();
-                    let rect_top = rect.top();
-
-                    let client_x = evt.coordinates().client().x;
-                    let client_y = evt.coordinates().client().y;
-
-                    let (tx, ty) = translation();
-
-                    // calculate the position of the mouse relative to our canvas
-                    let local_trans_x = client_x - rect_left;
-                    let local_trans_y = client_y - rect_top;
-
-                    // calculate the new translation, taking scale into account
-                    let ratio = new_scale / old_scale;
-                    let new_tx = tx + (1.0 - ratio) * local_trans_x;
-                    let new_ty = ty + (1.0 - ratio) * local_trans_y;
-
-                    // clamp to viewport using new scale
-                    let (clamped_tx, clamped_ty) = clamp_translate_value(
-                        new_tx,
-                        new_ty,
-                        viewport_size(),
-                        (image_size().0 * new_scale, image_size().1 * new_scale),
-                    );
-
-                    translation.set((clamped_tx, clamped_ty));
-                    zoom_signal.set(new_zoom);
+                    handle_wheel(evt);
                 }
             },
             onmousedown: move |evt| {
                 if can_drag() {
-                    is_dragging.set(true);
-                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                    viewport_size.set(get_viewport_size());
+                    handle_drag(evt);
                 }
             },
             onmouseleave: move |_| {
@@ -178,13 +321,7 @@ pub fn ImageBoard() -> Element {
             },
             onmousemove: move |evt| {
                 if is_dragging() && wgpu_on() {
-                    let (start_x, start_y) = (start_position().0, start_position().1);
-                    let dx = evt.coordinates().client().x - start_x;
-                    let dy = evt.coordinates().client().y - start_y;
-                    start_position.set((evt.coordinates().client().x, evt.coordinates().client().y));
-                    let (tx, ty) = translation();
-                    let clamped_translation = clamp_translate_value(tx + dx, ty + dy, viewport_size(), (image_size().0 * scale_value, image_size().1 * scale_value));
-                    translation.set((clamped_translation.0, clamped_translation.1));
+                    handle_mousemove(evt);
                 }
             },
             ondragover: move |evt| {
@@ -193,73 +330,124 @@ pub fn ImageBoard() -> Element {
             ondrop: move |evt| {
                 evt.prevent_default();
 
-                let file_engine = evt.files().unwrap();
-                let file_names = file_engine.files();
-
-                zoom_signal.set(100);
-
-                spawn(async move {
-                    wgpu_on.set(false);
-                    draw_signal.set(false);
-                    ready_signal.set(false);
-                    next_img_signal.set(0);
-                    let mut image_datas = VecDeque::<DynamicImage>::new();
-                    let mut image_datas_base64 = VecDeque::<String>::new();
-                    for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
-                        match load_from_memory(&bytes) {
-                            Ok(img) => {
-                                let max_width = 480;
-                                let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
-                                let rgb_img = resized.to_rgb8();
-                                let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
-                                let mut cursor = Cursor::new(Vec::new());
-                                if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
-                                    println!("Error during formatting: {err:?}");
-                                }
-
-                                let jpg_bytes = cursor.into_inner();
-                                let base64_str = base64_engine.encode(&jpg_bytes);
-
-                                image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
-                                image_datas.push_back(img);
-                            },
-                            Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
-                        }
-                    }}
-                    image_size.set((image_datas.front().unwrap().dimensions().0 as f64, image_datas.front().unwrap().dimensions().1 as f64));
-                    let mut img_vec = image_data_q();
-                    img_vec.append(&mut image_datas);
-                    image_data_q.set(img_vec);
-                    let mut img_vec_base64 = image_vector_base64();
-                    img_vec_base64.append(&mut image_datas_base64);
-                    image_vector_base64.set(img_vec_base64);
-                    wgpu_on.set(true);
-                });
+                handle_ondrop(evt);
             },
-
             match *wgpu_on.read() {
                 true => {
-
                     rsx!(
-                    div { class: "image-inner",
-                        canvas {
-                            id: "image-board",
-                            draggable: false,
-                            width: format!("{}px",image_size().0),
-                            height: format!("{}px",image_size().1),
-                            style: format!(
-                                "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
-                                translation().0,
-                                translation().1,
-                                zoom_signal() as f64 / 100.0
-                            ),
-                        },
-                    }
-                )
+                        Canvas {
+                            translation: translation,
+                            zoom: zoom_signal,
+                            image_size: image_size,
+                        }
+                    )
                 },
                 false => rsx!(p {class: "text",
                     "Drag and drop images here!"})
             }
         }
     }
+}
+
+#[component]
+fn Canvas(translation: Signal<(f64, f64)>, zoom: Signal<i64>, image_size: Signal<(f64, f64)>) -> Element {
+    let mut canvas_el = use_signal(|| None::<web_sys::Element>);
+    let is_cropping = use_context::<SideBarState>().is_cropping;
+    let mut image_inner_el = use_signal(|| None::<web_sys::Element>);
+
+    let canvas_style = use_memo(move || {
+        format!(
+            "transform: translate({}px, {}px) scale({}); transform-origin: 0px 0px;",
+                translation().0,
+                translation().1,
+                zoom() as f64 / 100.0
+        )
+    });
+
+    rsx! {
+        div { id: "image-inner",
+            style: canvas_style,
+            onmounted: move |_| {
+                let image_inner = GLOBAL_WINDOW_HANDLE()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("image-inner")
+                    .expect("No image-inner element found");
+
+                image_inner_el.set(Some(image_inner));
+            },
+            canvas {
+                id: "image-board",
+                draggable: false,
+                width: format!("{}px", image_size().0),
+                height: format!("{}px", image_size().1),
+                onmounted: move |_| {
+                    canvas_el.set(Some(GLOBAL_WINDOW_HANDLE()
+                        .document()
+                        .unwrap()
+                        .get_element_by_id("image-board")
+                        .expect("No canvas found")));
+                },
+            },
+            if is_cropping() && canvas_el().is_some() {
+                CropBox { 
+                    target_element: canvas_el,
+                    parent: image_inner_el,
+                }
+            }
+        }
+    }
+}
+
+fn schedule_click_to_visible_log(start_ns: u64, kind: RedrawKind, seq: u64) {
+    let kind_label: &'static str = match kind {
+        RedrawKind::HSV => "HSV",
+        RedrawKind::Crop => "Crop",
+        RedrawKind::Resize => "Resize",
+    };
+
+    let cb1 = Closure::wrap(Box::new(move |_t: f64| {
+        let win2 = window().expect("No global window found");
+        let start_ns2 = start_ns;
+        let kind2 = kind;
+        let kind_label2 = kind_label;
+        let seq2 = seq;
+
+        let cb2 = Closure::wrap(Box::new(move |_t2: f64| {
+            let perf = window().expect("No global window found").performance().unwrap();
+            let end_ns = (perf.now() * 1_000_000.0) as u64;
+
+            if current_pending_seq() != seq2 {
+                return;
+            }
+
+            if !should_log_seq(seq2) {
+                return;
+            }
+
+            let duration_ns = end_ns.saturating_sub(start_ns2);
+            let (avg_total, count_total, avg_kind, count_kind) =
+                record_visible_duration(kind2, duration_ns);
+
+            console::log_1(
+                &format!(
+                    "Click-to-visible ({0}): latest {1} ns; avg {2} ns over {3} redraws (overall avg {4} ns over {5})",
+                    kind_label2,
+                    duration_ns,
+                    avg_kind,
+                    count_kind,
+                    avg_total,
+                    count_total
+                )
+                .into(),
+            );
+        }) as Box<dyn FnMut(f64)>);
+
+        let _ = win2.request_animation_frame(cb2.as_ref().unchecked_ref());
+        cb2.forget();
+    }) as Box<dyn FnMut(f64)>);
+
+    let win1 = window().expect("No global window found");
+    let _ = win1.request_animation_frame(cb1.as_ref().unchecked_ref());
+    cb1.forget();
 }

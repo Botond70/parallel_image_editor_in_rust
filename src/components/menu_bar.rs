@@ -1,14 +1,17 @@
 use crate::{
     app_router::Route,
-    state::app_state::{SideBarVisibility, WGPUSignal},
+    state::app_state::{ImageState, SideBarState, WGPUSignal},
+    utils::upload_img::upload_img,
 };
 use dioxus::prelude::*;
 
 #[component]
 pub fn MenuBar() -> Element {
-    let curr_state = *use_context::<SideBarVisibility>().state.read();
-    let mut toggle_signal = use_context::<SideBarVisibility>().state;
-    let toggle = move |_| toggle_signal.set(!curr_state);
+    let curr_state = *use_context::<SideBarState>().sidebar_is_visible.read();
+    let mut sidebar_signal = use_context::<SideBarState>().sidebar_is_visible;
+    let toggle = move |_| {
+        sidebar_signal.set(!curr_state);
+    };
 
     let curr_save = *use_context::<WGPUSignal>().save_signal.read();
     let mut saver_signal = use_context::<WGPUSignal>().save_signal;
@@ -21,7 +24,21 @@ pub fn MenuBar() -> Element {
             div { class: "dropdown-button-container",
                 button {class: "btn", "File" }
                 div { class: "dropdown-content",
-                    button { class: "btn", "Load" }
+                    label { class: "btn", "Load",
+                    input { r#type: "file", accept:"image/*", multiple: "true",
+                        onchange: move |evt| {
+                            let files = evt.files().unwrap();
+                            upload_img(
+                                files,
+                                use_context::<ImageState>().img_size,
+                                use_context::<WGPUSignal>().signal,
+                                use_context::<WGPUSignal>().ready_signal,
+                                use_context::<ImageState>().zoom,
+                                use_context::<ImageState>().base64_vector,
+                                use_context::<ImageState>().image_vector,
+                            );
+                        },
+                    }},
                     button { onclick: saver, class: "btn", "Save as" }
                 }
             }

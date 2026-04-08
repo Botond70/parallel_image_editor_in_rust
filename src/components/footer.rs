@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
-use crate::state::app_state::{ImageZoom};
+use crate::state::app_state::{ImageState};
 
 #[component]
 pub fn FootBar() -> Element {
-    let mut zoom_signal = use_context::<ImageZoom>().zoom;
-    let zoom_limits = use_context::<ImageZoom>().limits;
+    let mut zoom_signal = use_context::<ImageState>().zoom;
+    let zoom_limits = use_context::<ImageState>().limits;
     let zoom_value = *zoom_signal.read();
 
     rsx! {
@@ -18,7 +18,7 @@ pub fn FootBar() -> Element {
                         min: format!("{}", zoom_limits().0),
                         value:"{zoom_value}" ,
                         max: format!("{}", zoom_limits().1),
-                        class: "zoom-slider",
+                        class: "styled-slider",
                         id:"range1",
                         oninput: move |e| {
                             if let Ok(parsed) = e.value().parse::<i64>() {
@@ -26,7 +26,7 @@ pub fn FootBar() -> Element {
                             }
                         }
                     },
-                    label{"{zoom_value}%"}
+                    p { class: "slider-progress", "{zoom_value}%" }
                 }
             }
         }
