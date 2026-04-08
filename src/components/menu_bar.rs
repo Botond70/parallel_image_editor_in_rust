@@ -8,8 +8,9 @@ use dioxus::prelude::*;
 #[component]
 pub fn MenuBar() -> Element {
     let curr_state = *use_context::<SideBarState>().sidebar_is_visible.read();
+    let mut sidebar_signal = use_context::<SideBarState>().sidebar_is_visible;
     let toggle = move |_| {
-        use_context::<SideBarState>().sidebar_is_visible.set(!curr_state);
+        sidebar_signal.set(!curr_state);
     };
 
     let curr_save = *use_context::<WGPUSignal>().save_signal.read();
