@@ -1,6 +1,7 @@
 use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
 use crate::utils::redraw_metrics::mark_click_to_visible_with_start_ns;
-use crate::state::app_state::{BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, RedrawKind, ResizeState, SideBarState};
+use crate::state::app_state::{ BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, RedrawKind, ResizeState, SideBarState, ImageState};
+
 use dioxus::prelude::*;
 use image::GenericImageView;
 use std::io::Cursor;
@@ -241,17 +242,17 @@ fn BlurPanel() -> Element {
     let mut blur_window_size = blur_state.window_size;
     let mut blur_direction = blur_state.direction;
 
-    let mut initial_mode = use_signal(|| blur_mode());
-    let mut initial_size = use_signal(|| blur_window_size());
-    let mut initial_direction = use_signal(|| blur_direction());
+    let initial_mode = use_signal(|| blur_mode());
+    let initial_size = use_signal(|| blur_window_size());
+    let initial_direction = use_signal(|| blur_direction());
 
     let mut draft_mode = use_signal(|| initial_mode());
     let mut draft_size = use_signal(|| initial_size());
     let mut draft_direction = use_signal(|| initial_direction());
 
-    let mut mode_value = draft_mode();
-    let mut size_value = draft_size();
-    let mut direction_value = draft_direction();
+    let mode_value = draft_mode();
+    let size_value = draft_size();
+    let direction_value = draft_direction();
 
     rsx! {
         DraggableResizeablePanel {
@@ -488,6 +489,7 @@ fn FilterMenu() -> Element {
         }
     }
 }
+
 
 #[component]
 pub fn SideBar() -> Element {

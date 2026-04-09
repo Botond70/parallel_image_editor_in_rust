@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
-use crate::state::app_state::{BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
+use crate::state::app_state::{UndoRedoState, BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
+
 use dioxus::prelude::*;
 use image::DynamicImage;
 
@@ -111,6 +112,16 @@ pub fn use_wgpu_state() {
         signal: wgpu_signal,
         save_signal: save_signal,
         ready_signal,
+    });
+}
+
+pub fn use_undo_redo_state() {
+    let undo_stack = use_signal(|| Vec::<crate::utils::undo_redo::EditorSnapshot>::new());
+    let redo_stack = use_signal(|| Vec::<crate::utils::undo_redo::EditorSnapshot>::new());
+
+    use_context_provider(|| UndoRedoState {
+        undo_stack,
+        redo_stack,
     });
 }
 

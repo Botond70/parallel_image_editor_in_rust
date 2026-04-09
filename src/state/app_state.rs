@@ -91,3 +91,9 @@ pub struct ImageState {
     pub ui_redraw_start_ns: Signal<Option<u64>>,
     pub ui_redraw_kind: Signal<Option<RedrawKind>>,
 }
+
+#[derive(Clone, Copy)]
+pub struct UndoRedoState {
+    pub undo_stack: Signal<Vec<crate::utils::undo_redo::EditorSnapshot>>,
+    pub redo_stack: Signal<Vec<crate::utils::undo_redo::EditorSnapshot>>,
+}

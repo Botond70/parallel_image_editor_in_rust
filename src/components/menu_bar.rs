@@ -1,7 +1,8 @@
 use crate::{
     app_router::Route,
-    state::app_state::{ImageState, SideBarState, WGPUSignal},
+    state::app_state::{ImageState, SideBarState, WGPUSignal, UndoRedoState, CropSignal, HSVState, ResizeState, BlurState},
     utils::upload_img::upload_img,
+    utils::undo_redo::{perform_redo, perform_undo},
 };
 use dioxus::prelude::*;
 
@@ -50,6 +51,63 @@ pub fn MenuBar() -> Element {
                 }
             }
             Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
+            UndoRedoPanel {}
+        }
+    }
+}
+
+
+#[component]
+fn UndoRedoPanel() -> Element {
+    let mut undo_redo_state = use_context::<UndoRedoState>();
+    let mut image_state = use_context::<ImageState>();
+    let mut resize_state = use_context::<ResizeState>();
+    let mut crop_state = use_context::<CropSignal>();
+    let mut hsv_state = use_context::<HSVState>();
+    let mut blur_state = use_context::<BlurState>();
+
+    let undo_stack = undo_redo_state.undo_stack;
+    let redo_stack = undo_redo_state.redo_stack;
+    let undo_count = undo_stack().len();
+    let redo_count = redo_stack().len();
+
+    rsx! {
+        div { class: "undo-redo-panel",
+            div { class: "history-actions",
+                button {
+                    class: if undo_count > 0 { "btn" } else { "btn disabled" },
+                    onclick: move |_| {
+                        if undo_count > 0 {
+                            perform_undo(
+                                undo_redo_state,
+                                &image_state,
+                                &resize_state,
+                                &crop_state,
+                                &hsv_state,
+                                &blur_state,
+                            );
+                        }
+                    },
+                    "Undo"
+                }
+                button {
+                    class: if redo_count > 0 { "btn" } else { "btn disabled" },
+                    onclick: move |_| {
+                        if redo_count > 0 {
+                            perform_redo(
+                                undo_redo_state,
+                                &image_state,
+                                &resize_state,
+                                &crop_state,
+                                &hsv_state,
+                                &blur_state,
+                            );
+                        }
+                    },
+                    "Redo"
+                }
+            }
+
         }
     }
 }
