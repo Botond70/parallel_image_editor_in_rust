@@ -18,6 +18,7 @@ struct Globals {
     blur_window_size: u32,
     blur_direction: u32,
     _pad: u32,
+    _pad2: u32,
 };
 
 fn hsv2rgb(hsv: vec3<f32>) -> vec3<f32> {
