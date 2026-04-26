@@ -15,30 +15,26 @@ use wgpu::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Globals {
-    pub hsv: [f32; 3], // h, s, v
-    pub crop_left: f32,
-    pub crop_right: f32,
-    pub crop_top: f32,
-    pub crop_bottom: f32,
-    pub blur_mode: u32,
-    pub blur_window_size: u32,
-    pub blur_direction: u32,
-    pub _pad: [u32; 2], // padding to align to 16 bytes (48 bytes total)
-}
+pub struct Globals {
+    pub hsv: [f32; 3],          // 12 bytes
+    pub _pad0: u32,             // 4 bytes (mirrors vec3's implicit align gap)
+    pub crop: [f32; 4],         // 16 bytes  (left, right, top, bottom)
+    pub blur_mode: u32,         // 4 bytes
+    pub blur_window_size: u32,  // 4 bytes
+    pub blur_direction: u32,    // 4 bytes
+    pub _pad1: u32,              // 4 bytes
+} 
 
 impl Globals {
     pub fn new(h: f32, s: f32, v: f32, l: f32, r: f32, t: f32, b: f32, blur_mode: u32, blur_window_size: u32, blur_direction: u32) -> Self {
         Self {
             hsv: [h, s, v],
-            crop_left: l,
-            crop_right: r,
-            crop_top: t,
-            crop_bottom: b,
+            _pad0: 0,
+            crop: [l, r, t, b],
             blur_mode,
             blur_window_size,
             blur_direction,
-            _pad: [0, 0],
+            _pad1: 0,
         }
     }
 }

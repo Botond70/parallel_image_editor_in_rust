@@ -10,16 +10,12 @@ struct VertexOutput {
 
 struct Globals {
     hsv: vec3<f32>,
-    crop_left: f32,
-    crop_right: f32,
-    crop_top: f32,
-    crop_bottom: f32,
+    crop: vec4<f32>, // left, right, top, bottom
     blur_mode: u32,
     blur_window_size: u32,
     blur_direction: u32,
     _pad: u32,
-    _pad2: u32,
-};
+}
 
 fn hsv2rgb(hsv: vec3<f32>) -> vec3<f32> {
     let h = hsv.x * 6.0;
@@ -134,8 +130,8 @@ var<uniform> globals: Globals;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let hue = globals.hsv.x;
-    let min_uv = vec2<f32>(globals.crop_left, globals.crop_top);
-    let max_uv = vec2<f32>(1.0 - globals.crop_right, 1.0 - globals.crop_bottom);
+    let min_uv = vec2<f32>(globals.crop.x, globals.crop.y);
+    let max_uv = vec2<f32>(1.0 - globals.crop.z, 1.0 - globals.crop.w);
 
     let crop_size = max_uv - min_uv;
     let cropped_uv = min_uv + in.tex_coords * crop_size;
