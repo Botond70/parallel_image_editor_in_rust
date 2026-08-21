@@ -94,6 +94,8 @@ pub struct ImageState {
 
 #[derive(Clone, Copy)]
 pub struct UndoRedoState {
-    pub undo_stack: Signal<Vec<crate::utils::undo_redo::EditorSnapshot>>,
-    pub redo_stack: Signal<Vec<crate::utils::undo_redo::EditorSnapshot>>,
+    pub undo_stack: Signal<Vec<crate::utils::undo_redo::UndoEntry>>,
+    pub redo_stack: Signal<Vec<crate::utils::undo_redo::UndoEntry>>,
+    pub undo_len: Signal<usize>,
+    pub redo_len: Signal<usize>,
 }

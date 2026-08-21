@@ -116,12 +116,16 @@ pub fn use_wgpu_state() {
 }
 
 pub fn use_undo_redo_state() {
-    let undo_stack = use_signal(|| Vec::<crate::utils::undo_redo::EditorSnapshot>::new());
-    let redo_stack = use_signal(|| Vec::<crate::utils::undo_redo::EditorSnapshot>::new());
+    let undo_stack = use_signal(|| Vec::<crate::utils::undo_redo::UndoEntry>::new());
+    let redo_stack = use_signal(|| Vec::<crate::utils::undo_redo::UndoEntry>::new());
+    let undo_len = use_signal(|| 0usize);
+    let redo_len = use_signal(|| 0usize);
 
     use_context_provider(|| UndoRedoState {
         undo_stack,
         redo_stack,
+        undo_len,
+        redo_len,
     });
 }
 

@@ -1,5 +1,6 @@
 use crate::app_router::Route;
-use crate::state::app_state::{ImageState};
+use crate::state::app_state::{ImageState, UndoRedoState};
+use crate::utils::undo_redo::clear_undo_redo_history;
 use image::GenericImageView;
 use web_sys::console;
 use dioxus::prelude::*;
@@ -72,6 +73,9 @@ pub fn Gallery() -> Element {
     };
 
     let mut handle_onclick = move |index: usize| {
+        if curr_index() != index {
+            clear_undo_redo_history(use_context::<UndoRedoState>());
+        }
         curr_index.set(index);
         let image_q = image_data_q();
         let currently_selected_image = image_q.get(index).expect("Error during ondrop");

@@ -59,17 +59,15 @@ pub fn MenuBar() -> Element {
 
 #[component]
 fn UndoRedoPanel() -> Element {
-    let mut undo_redo_state = use_context::<UndoRedoState>();
-    let mut image_state = use_context::<ImageState>();
-    let mut resize_state = use_context::<ResizeState>();
-    let mut crop_state = use_context::<CropSignal>();
-    let mut hsv_state = use_context::<HSVState>();
-    let mut blur_state = use_context::<BlurState>();
+    let undo_redo_state = use_context::<UndoRedoState>();
+    let image_state = use_context::<ImageState>();
+    let resize_state = use_context::<ResizeState>();
+    let crop_state = use_context::<CropSignal>();
+    let hsv_state = use_context::<HSVState>();
+    let blur_state = use_context::<BlurState>();
 
-    let undo_stack = undo_redo_state.undo_stack;
-    let redo_stack = undo_redo_state.redo_stack;
-    let undo_count = undo_stack().len();
-    let redo_count = redo_stack().len();
+    let undo_count = (undo_redo_state.undo_len)();
+    let redo_count = (undo_redo_state.redo_len)();
 
     rsx! {
         div { class: "undo-redo-panel",

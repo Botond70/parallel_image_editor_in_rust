@@ -1,7 +1,7 @@
 use crate::components::draggable_resizeable_panel::DraggableResizeablePanel;
 use crate::utils::redraw_metrics::mark_click_to_visible_with_start_ns;
 use crate::state::app_state::{UndoRedoState, BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, RedrawKind, ResizeState, SideBarState, ImageState};
-use crate::utils::undo_redo::{perform_redo, perform_undo, record_undo_checkpoint};
+use crate::utils::undo_redo::{record_image_edit_checkpoint, record_params_checkpoint};
 use dioxus::prelude::*;
 use image::GenericImageView;
 use std::io::Cursor;
@@ -78,7 +78,7 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                             max: 1.0,
                             step: 0.001,
                             onmousedown: move |_| {
-                                record_undo_checkpoint(
+                                record_params_checkpoint(
                                     use_context::<UndoRedoState>(),
                                     &use_context::<ImageState>(),
                                     &use_context::<ResizeState>(),
@@ -96,16 +96,6 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                                     disable_blur_temporarily();
                                 }
                             },
-                            onmouseup: move |_| {
-                                record_undo_checkpoint(
-                                    use_context::<UndoRedoState>(),
-                                    &use_context::<ImageState>(),
-                                    &use_context::<ResizeState>(),
-                                    &use_context::<CropSignal>(),
-                                    &use_context::<HSVState>(),
-                                    &use_context::<BlurState>(),
-                                );
-                            },
                         }
                         p { class: "slider-progress", "{hue_slider_value() * 100.0:.2}" }
                     },
@@ -119,7 +109,7 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                             max: 1.0,
                             step: 0.001,
                             onmousedown: move |_| {
-                                record_undo_checkpoint(
+                                record_params_checkpoint(
                                     use_context::<UndoRedoState>(),
                                     &use_context::<ImageState>(),
                                     &use_context::<ResizeState>(),
@@ -137,16 +127,6 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                                     disable_blur_temporarily();
                                 }
                             },
-                            onmouseup: move |_| {
-                                record_undo_checkpoint(
-                                    use_context::<UndoRedoState>(),
-                                    &use_context::<ImageState>(),
-                                    &use_context::<ResizeState>(),
-                                    &use_context::<CropSignal>(),
-                                    &use_context::<HSVState>(),
-                                    &use_context::<BlurState>(),
-                                );
-                            },
                         }
                         p { class: "slider-progress", "{sat_slider_value()}" }
                     },
@@ -160,7 +140,7 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                             max: 10.0,
                             step: 0.001,
                             onmousedown: move |_| {
-                                record_undo_checkpoint(
+                                record_params_checkpoint(
                                     use_context::<UndoRedoState>(),
                                     &use_context::<ImageState>(),
                                     &use_context::<ResizeState>(),
@@ -177,16 +157,6 @@ pub fn HSVPanel(visibility: Signal<bool>) -> Element {
                                     val.set(parsed);
                                     disable_blur_temporarily();
                                 }
-                            },
-                            onmouseup: move |_| {
-                                record_undo_checkpoint(
-                                    use_context::<UndoRedoState>(),
-                                    &use_context::<ImageState>(),
-                                    &use_context::<ResizeState>(),
-                                    &use_context::<CropSignal>(),
-                                    &use_context::<HSVState>(),
-                                    &use_context::<BlurState>(),
-                                );
                             },
                         }
                         p { class: "slider-progress", "{val_slider_value()}" }
@@ -271,7 +241,7 @@ fn ResizePanel(visibility: Signal<bool>) -> Element {
                             onclick: move |_evt| {
                                 let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
                                 mark_click_to_visible_with_start_ns(RedrawKind::Resize, start_ns);
-                                record_undo_checkpoint(
+                                record_params_checkpoint(
                                     use_context::<UndoRedoState>(),
                                     &use_context::<ImageState>(),
                                     &use_context::<ResizeState>(),
@@ -379,7 +349,7 @@ fn BlurPanel() -> Element {
                         button {
                             class: "btn-styled",
                             onclick: move |_| {
-                                record_undo_checkpoint(
+                                record_params_checkpoint(
                                     use_context::<UndoRedoState>(),
                                     &use_context::<ImageState>(),
                                     &use_context::<ResizeState>(),
@@ -441,13 +411,11 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
     let mut handle_crop = move |_evt: Event<MouseData>| {
         let start_ns = (window().unwrap().performance().unwrap().now() * 1_000_000.0) as u64;
         mark_click_to_visible_with_start_ns(RedrawKind::Crop, start_ns);
-        record_undo_checkpoint(
+        record_image_edit_checkpoint(
             use_context::<UndoRedoState>(),
             &use_context::<ImageState>(),
             &use_context::<ResizeState>(),
             &use_context::<CropSignal>(),
-            &use_context::<HSVState>(),
-            &use_context::<BlurState>(),
         );
 
         let mut img_vec = image_vector.write();
