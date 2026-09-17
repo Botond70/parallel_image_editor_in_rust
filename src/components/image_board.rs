@@ -7,14 +7,12 @@ use crate::utils::redraw_metrics::{
     should_log_seq, snapshot_pending_click_to_visible,
 };
 use crate::utils::renderer::start_wgpu;
+use crate::utils::upload_img::decode_uploaded_images;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD as base64_engine;
 use dioxus::{html::HasFileData, prelude::*};
-use image::{DynamicImage, GenericImageView, load_from_memory};
+use image::{DynamicImage, GenericImageView};
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::io::Cursor;
 use std::rc::Rc;
 use web_sys::{console, window};
 use wasm_bindgen::closure::Closure;
@@ -274,8 +272,10 @@ pub fn ImageBoard() -> Element {
     };
 
     let mut handle_ondrop = move |evt: Event<DragData>| {
-        let file_engine = evt.files().unwrap();
-        let file_names = file_engine.files();
+        let files = evt.files();
+        if files.is_empty() {
+            return;
+        }
 
         zoom_signal.set(100);
 
@@ -283,29 +283,7 @@ pub fn ImageBoard() -> Element {
             wgpu_on.set(false);
             draw_signal.set(false);
             ready_signal.set(false);
-            let mut image_datas = VecDeque::<DynamicImage>::new();
-            let mut image_datas_base64 = VecDeque::<String>::new();
-            for file_name in file_names{if let Some(bytes) = file_engine.read_file(&file_name).await {
-                match load_from_memory(&bytes) {
-                    Ok(img) => {
-                        let max_width = 480;
-                        let resized = img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
-                        let rgb_img = resized.to_rgb8();
-                        let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
-                        let mut cursor = Cursor::new(Vec::new());
-                        if let Err(err) = dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg) {
-                            println!("Error during formatting: {err:?}");
-                        }
-
-                        let jpg_bytes = cursor.into_inner();
-                        let base64_str = base64_engine.encode(&jpg_bytes);
-
-                        image_datas_base64.push_back(format!("data:image/jpeg;base64,{}", base64_str));
-                        image_datas.push_back(img);
-                    },
-                    Err(err) => {println!("UNSUPPORTED IMAGE FORMAT: {err:?}");}
-                }
-            }}
+            let (mut image_datas, mut image_datas_base64) = decode_uploaded_images(files).await;
             let mut img_vec = image_data_q();
             img_vec.append(&mut image_datas);
             image_data_q.set(img_vec);

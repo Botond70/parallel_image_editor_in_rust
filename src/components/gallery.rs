@@ -101,7 +101,7 @@ pub fn Gallery() -> Element {
                                     style: if index == curr_index() { "background-color: rgba(200, 200, 200, 0.5); scale: 1.1;"},
                                     Link { to: Route::WorkSpace,
                                         img {
-                                            key: index,
+                                            key: "{index}",
                                             style: format!("width: {}px; height: {}px;", image_width, image_height),
                                             onclick: move |_| {
                                                 handle_onclick(index);

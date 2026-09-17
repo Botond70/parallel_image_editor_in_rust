@@ -5,6 +5,7 @@ use crate::components::{
 };
 use crate::state::providers::{use_blur_state, use_crop_state, use_filter_menu_state, use_hsv_state, use_image_state, use_resize_state, use_sidebar_state, use_undo_redo_state, use_wgpu_state};
 use dioxus::prelude::*;
+use dioxus_router::RouterConfig;
 use web_sys::{Window, window};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -24,7 +25,9 @@ pub fn App() -> Element {
     use_image_state();
 
     rsx! {
-        document::Stylesheet { rel: "stylesheet", href: MAIN_CSS }
+        document::Stylesheet { 
+            href: MAIN_CSS 
+        }
         Router::<Route> {
             config: || {
                 RouterConfig::default()

@@ -1,14 +1,58 @@
+use anyhow::Context;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as base64_engine;
-use dioxus::html::FileEngine;
-use dioxus::{prelude::*};
+use dioxus::html::FileData;
+use dioxus::prelude::*;
 use image::{DynamicImage, GenericImageView, load_from_memory};
 use std::collections::VecDeque;
 use std::io::Cursor;
-use std::sync::Arc;
+
+const PREVIEW_MAX_WIDTH: u32 = 480;
+
+async fn decode_uploaded_image(file: &FileData) -> anyhow::Result<(DynamicImage, String)> {
+    let bytes = file.read_bytes().await.map_err(|err| {
+        anyhow::anyhow!("failed to read {}: {err}", file.name())
+    })?;
+
+    let img = load_from_memory(&bytes)
+        .with_context(|| format!("unsupported image format: {}", file.name()))?;
+
+    let resized = img.resize(
+        PREVIEW_MAX_WIDTH,
+        u32::MAX,
+        image::imageops::FilterType::Triangle,
+    );
+    let preview = DynamicImage::ImageRgb8(resized.to_rgb8());
+
+    let mut jpeg = Cursor::new(Vec::new());
+    preview
+        .write_to(&mut jpeg, image::ImageFormat::Jpeg)
+        .with_context(|| format!("failed to encode JPEG preview for {}", file.name()))?;
+
+    let data_url = format!(
+        "data:image/jpeg;base64,{}",
+        base64_engine.encode(jpeg.into_inner())
+    );
+    Ok((img, data_url))
+}
+
+pub async fn decode_uploaded_images(
+    files: Vec<FileData>,
+) -> (VecDeque<DynamicImage>, VecDeque<String>) {
+    let mut decoded = Vec::new();
+
+    for file in files {
+        match decode_uploaded_image(&file).await {
+            Ok(image) => decoded.push(image),
+            Err(err) => eprintln!("{err:#}"),
+        }
+    }
+
+    decoded.into_iter().unzip()
+}
 
 pub fn upload_img(
-    file_engine: Arc<dyn FileEngine>,
+    files: Vec<FileData>,
     mut image_size: Signal<(f64, f64)>,
     mut wgpu_on: Signal<bool>,
     mut ready_signal: Signal<bool>,
@@ -16,48 +60,15 @@ pub fn upload_img(
     mut image_vector_base64: Signal<VecDeque<String>>,
     mut image_data_q: Signal<VecDeque<DynamicImage>>,
 ) {
-    let file_names = file_engine.files();
-
     zoom_signal.set(100);
 
     spawn(async move {
         wgpu_on.set(false);
         ready_signal.set(false);
-        let mut image_datas = VecDeque::<DynamicImage>::new();
-        let mut image_datas_base64 = VecDeque::<String>::new();
-        for file_name in file_names {
-            if let Some(bytes) = file_engine.read_file(&file_name).await {
-                match load_from_memory(&bytes) {
-                    Ok(img) => {
-                        let max_width = 480;
-                        let resized =
-                            img.resize(max_width, u32::MAX, image::imageops::FilterType::Triangle);
-                        let rgb_img = resized.to_rgb8();
-                        let dynamic_rgb = DynamicImage::ImageRgb8(rgb_img);
-                        let mut cursor = Cursor::new(Vec::new());
-                        if let Err(err) =
-                            dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg)
-                        {
-                            println!("Error during formatting: {err:?}");
-                        }
-
-                        let jpg_bytes = cursor.into_inner();
-                        let base64_str = base64_engine.encode(&jpg_bytes);
-
-                        image_datas_base64
-                            .push_back(format!("data:image/jpeg;base64,{}", base64_str));
-                        image_datas.push_back(img);
-                    }
-                    Err(err) => {
-                        println!("UNSUPPORTED IMAGE FORMAT: {err:?}");
-                    }
-                }
-            }
+        let (mut image_datas, mut image_datas_base64) = decode_uploaded_images(files).await;
+        if let Some(front) = image_datas.front() {
+            image_size.set((front.dimensions().0 as f64, front.dimensions().1 as f64));
         }
-        image_size.set((
-            image_datas.front().unwrap().dimensions().0 as f64,
-            image_datas.front().unwrap().dimensions().1 as f64,
-        ));
         let mut img_vec = image_data_q();
         img_vec.append(&mut image_datas);
         image_data_q.set(img_vec);

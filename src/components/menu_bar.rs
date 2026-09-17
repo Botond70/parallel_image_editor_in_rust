@@ -28,7 +28,10 @@ pub fn MenuBar() -> Element {
                     label { class: "btn", "Load",
                     input { r#type: "file", accept:"image/*", multiple: "true",
                         onchange: move |evt| {
-                            let files = evt.files().unwrap();
+                            let files = evt.files();
+                            if files.is_empty() {
+                                return;
+                            }
                             upload_img(
                                 files,
                                 use_context::<ImageState>().img_size,

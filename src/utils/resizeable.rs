@@ -4,6 +4,7 @@ use web_sys::MouseEvent;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, console};
+use dioxus_core::use_hook_with_cleanup;
 
 #[derive(Clone, Copy)]
 pub enum ResizeType {
