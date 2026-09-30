@@ -1,8 +1,7 @@
 use crate::state::app_state::{
-    BlurDirection, BlurMode, BlurState, CropSignal, HSVState, ImageState, ResizeState, UndoRedoState,
+    BlurDirection, BlurMode, BlurState, CropSignal, HSVState, ImageState, LoadedImage, ResizeState, UndoRedoState,
 };
 use dioxus::prelude::*;
-use image::DynamicImage;
 use web_sys::console::log_1;
 
 pub const MAX_UNDO_STACK: usize = 40;
@@ -26,8 +25,7 @@ pub struct ParamSnapshot {
 #[derive(Clone)]
 pub struct ImageEditSnapshot {
     pub index: usize,
-    pub image: DynamicImage,
-    pub base64: String,
+    pub image: LoadedImage,
     pub img_size: (f64, f64),
     pub resize_w: u32,
     pub resize_h: u32,
@@ -77,11 +75,9 @@ fn capture_image_edit_at(
     }
     let index = index.min(images.len() - 1);
     let img = images.get(index)?.clone();
-    let base64 = image.base64_vector.read().get(index)?.clone();
     Some(ImageEditSnapshot {
         index,
         image: img,
-        base64,
         img_size: (image.img_size)(),
         resize_w: (resize.width)(),
         resize_h: (resize.height)(),
@@ -123,12 +119,6 @@ fn apply_image_edit(
         let mut images = image.image_vector.write();
         if let Some(slot) = images.get_mut(snap.index) {
             *slot = snap.image.clone();
-        }
-    }
-    {
-        let mut base64 = image.base64_vector.write();
-        if let Some(slot) = base64.get_mut(snap.index) {
-            *slot = snap.base64.clone();
         }
     }
     image.curr_image_index.set(snap.index);

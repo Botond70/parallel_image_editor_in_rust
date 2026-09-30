@@ -58,12 +58,11 @@ fn GalleryHeader(grid_size: Signal<String>) -> Element {
 
 #[component]
 pub fn Gallery() -> Element {
-    let img_vec_base64 = use_context::<ImageState>().base64_vector;
     let image_data_q = use_context::<ImageState>().image_vector;
     let mut image_size = use_context::<ImageState>().img_size;
     let mut curr_index = use_context::<ImageState>().curr_image_index;
     let grid_size = use_signal(|| String::from("medium"));
-    let img_vector = img_vec_base64();
+    let img_vector = image_data_q();
 
     let (column_width, image_width, image_height) = match &*grid_size() {
         "small" => (220, 180, 90),
@@ -79,10 +78,8 @@ pub fn Gallery() -> Element {
         curr_index.set(index);
         let image_q = image_data_q();
         let currently_selected_image = image_q.get(index).expect("Error during ondrop");
-        image_size.set((
-            currently_selected_image.dimensions().0 as f64,
-            currently_selected_image.dimensions().1 as f64
-        ));
+        let (width, height) = currently_selected_image.image_data.dimensions();
+        image_size.set((width as f64, height as f64));
         console::log_1(&format!("Clicked image index: {}", index).into());
     };
 
@@ -94,7 +91,8 @@ pub fn Gallery() -> Element {
             div { class: "image-display-container",
                 style: format!("grid-template-columns: repeat(auto-fit, minmax({}px, 1fr));", column_width),
                 {
-                    img_vector.iter().enumerate().map(|(index, img_url)| {
+                    img_vector.iter().enumerate().map(|(index, loaded_img)| {
+                        let img_url = loaded_img.base64_data.clone();
                         rsx! (
                             div { class: "image-display",
                                 div { class: "is-selected-wrapper",

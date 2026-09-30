@@ -38,7 +38,6 @@ pub fn MenuBar() -> Element {
                                 use_context::<WGPUSignal>().signal,
                                 use_context::<WGPUSignal>().ready_signal,
                                 use_context::<ImageState>().zoom,
-                                use_context::<ImageState>().base64_vector,
                                 use_context::<ImageState>().image_vector,
                             );
                         },

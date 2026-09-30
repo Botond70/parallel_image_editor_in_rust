@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::state::app_state::{UndoRedoState, BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, ImageState, RedrawKind, ResizeState, SideBarState, WGPUSignal};
+use crate::state::app_state::{UndoRedoState, BlurDirection, BlurMode, BlurState, CropSignal, FilterMenuState, HSVState, ImageState, LoadedImage, RedrawKind, ResizeState, SideBarState, WGPUSignal};
 
 use dioxus::prelude::*;
-use image::DynamicImage;
 
 pub fn use_hsv_state() {
     let hsv_visible = use_signal(|| false);
@@ -58,8 +57,7 @@ pub fn use_crop_state() {
 pub fn use_image_state() {
     let img_scale = use_signal(|| 100);
     let image_scale_limits: Signal<(i64, i64)> = use_signal(|| (20, 3000));
-    let image_vector = use_signal(|| VecDeque::<DynamicImage>::new());
-    let image_vector_base64 = use_signal(|| VecDeque::<String>::new());
+    let image_vector = use_signal(|| VecDeque::<LoadedImage>::new());
     let image_index = use_signal(|| 0 as usize);
     let img_size = use_signal(|| (0.0, 0.0));
     let image_modified = use_signal(|| false);
@@ -70,7 +68,6 @@ pub fn use_image_state() {
         zoom: img_scale,
         limits: image_scale_limits,
         image_vector,
-        base64_vector: image_vector_base64,
         curr_image_index: image_index,
         img_size,
         image_modified,

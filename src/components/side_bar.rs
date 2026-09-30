@@ -391,7 +391,6 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
     let mut left_applied = use_context::<CropSignal>().left_applied;
     let mut right_applied = use_context::<CropSignal>().right_applied;
     let mut image_vector = use_context::<crate::state::app_state::ImageState>().image_vector;
-    let mut base64_vector = use_context::<crate::state::app_state::ImageState>().base64_vector;
     let curr_index = use_context::<crate::state::app_state::ImageState>().curr_image_index;
     let mut image_size = use_context::<crate::state::app_state::ImageState>().img_size;
     let mut image_modified = use_context::<crate::state::app_state::ImageState>().image_modified;
@@ -420,7 +419,7 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
 
         let mut img_vec = image_vector.write();
         if let Some(current_image) = img_vec.get_mut(curr_index()) {
-            let (img_width, img_height) = current_image.dimensions();
+            let (img_width, img_height) = current_image.image_data.dimensions();
             let left_px = (left_val * img_width as f32) as u32;
             let top_px = (top_val * img_height as f32) as u32;
             let right_px = (right_val * img_width as f32) as u32;
@@ -435,19 +434,16 @@ fn CropPanel(visibility: Signal<bool>) -> Element {
                 right_applied.set(right_val);
                 bottom_applied.set(bottom_val);
 
-                let cropped_image = current_image.crop_imm(left_px, top_px, crop_width, crop_height);
-                *current_image = cropped_image;
+                let cropped_image = current_image.image_data.crop_imm(left_px, top_px, crop_width, crop_height);
+                current_image.image_data = cropped_image;
 
-                let rgb_img = current_image.to_rgb8();
+                let rgb_img = current_image.image_data.to_rgb8();
                 let dynamic_rgb = image::DynamicImage::ImageRgb8(rgb_img);
                 let mut cursor = Cursor::new(Vec::new());
                 if dynamic_rgb.write_to(&mut cursor, image::ImageFormat::Jpeg).is_ok() {
                     let jpg_bytes = cursor.into_inner();
                     let base64_str = base64_engine.encode(&jpg_bytes);
-                    let mut base64_vec = base64_vector.write();
-                    if let Some(base64_entry) = base64_vec.get_mut(curr_index()) {
-                        *base64_entry = format!("data:image/jpeg;base64,{}", base64_str);
-                    }
+                    current_image.base64_data = format!("data:image/jpeg;base64,{}", base64_str);
                 }
 
                 image_size.set((crop_width as f64, crop_height as f64));

@@ -1,6 +1,6 @@
 use crate::components::cropbox::CropBox;
 use crate::dioxusui::GLOBAL_WINDOW_HANDLE;
-use crate::state::app_state::{HSVState, ImageState, RedrawKind, SideBarState, WGPUSignal, ResizeState};
+use crate::state::app_state::{HSVState, ImageState, LoadedImage, RedrawKind, ResizeState, SideBarState, WGPUSignal};
 use crate::state::customlib::{Filesave_config, State};
 use crate::utils::redraw_metrics::{
     current_pending_seq, mark_blur_redraw_start, record_visible_duration,
@@ -10,7 +10,7 @@ use crate::utils::renderer::start_wgpu;
 use crate::utils::upload_img::decode_uploaded_images;
 use crate::utils::utils::{clamp_translate_value, get_scroll_value};
 use dioxus::{html::HasFileData, prelude::*};
-use image::{DynamicImage, GenericImageView};
+use image::GenericImageView;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -24,7 +24,6 @@ pub fn ImageBoard() -> Element {
     let zoom_limits = use_context::<ImageState>().limits;
     let scale_value: f64 = zoom_signal() as f64 / 100.0;
     let mut image_data_q = use_context::<ImageState>().image_vector;
-    let mut image_vector_base64 = use_context::<ImageState>().base64_vector;
     let curr_index = use_context::<ImageState>().curr_image_index;
     let mut image_modified = use_context::<ImageState>().image_modified;
     let mut translation = use_signal(|| (0.0, 0.0));
@@ -60,19 +59,19 @@ pub fn ImageBoard() -> Element {
                 hue.set(0.0);
                 sat.set(0.0);
                 val.set(0.0);
-                let mut image_datas: VecDeque<DynamicImage> = image_data_q.cloned();
+                let mut image_datas: VecDeque<LoadedImage> = image_data_q.cloned();
                 console::log_1(&format!("Images : {}", image_datas.clone().len()).into());
                 console::log_1(&format!("Current index: {}", curr_index() as u32).into());
-                let first_img = image_datas.get(curr_index()).unwrap();
+                let first_img = &image_datas.get(curr_index()).unwrap().image_data;
                 let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
                 width_signal.set(first_img.dimensions().0);
                 height_signal.set(first_img.dimensions().1);
                 console::log_1(&"Started WGPU".into());
                 console::log_1(&format!("Images: {}", image_datas.len()).into());
                 let mut wgpusender = state.borrow().sender();
-                for (i, img) in image_datas.iter().enumerate() {
+                for (i, loaded_img) in image_datas.iter().enumerate() {
                     if i > 0 {
-                        wgpusender.send(img.clone());
+                        wgpusender.send(loaded_img.image_data.clone());
                     }
                 }
                 state.borrow_mut().receive().await;
@@ -117,7 +116,10 @@ pub fn ImageBoard() -> Element {
             if wgpu_on() && ready_signal() {
                 if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
                     let mut wgpu_state = wgpu_state_rc.borrow_mut();
-                    wgpu_state.img_vec = image_data_q.cloned();
+                    wgpu_state.img_vec = image_data_q()
+                        .iter()
+                        .map(|loaded| loaded.image_data.clone())
+                        .collect();
                     let perf = window().unwrap().performance().unwrap();
                     let start = (perf.now() * 1_000_000.0) as u64;
                     wgpu_state.draw(true, None);
@@ -283,15 +285,12 @@ pub fn ImageBoard() -> Element {
             wgpu_on.set(false);
             draw_signal.set(false);
             ready_signal.set(false);
-            let (mut image_datas, mut image_datas_base64) = decode_uploaded_images(files).await;
-            let mut img_vec = image_data_q();
-            img_vec.append(&mut image_datas);
+            let mut loaded_images: VecDeque<LoadedImage>  = decode_uploaded_images(files).await;
+            let mut img_vec: VecDeque<LoadedImage> = image_data_q();
+            img_vec.append(&mut loaded_images);
             image_data_q.set(img_vec);
-            let mut img_vec_base64 = image_vector_base64();
-            img_vec_base64.append(&mut image_datas_base64);
-            image_vector_base64.set(img_vec_base64);
             let image_q = image_data_q();
-            let currently_selected_image = image_q.get(curr_index()).expect("Error during ondrop");
+            let currently_selected_image = image_q.get(curr_index()).expect("Index out of bounds").image_data.clone();
             image_size.set((
                 currently_selected_image.dimensions().0 as f64,
                 currently_selected_image.dimensions().1 as f64

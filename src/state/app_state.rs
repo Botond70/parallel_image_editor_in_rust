@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use dioxus::prelude::*;
 use image::DynamicImage;
+use image::ImageFormat;
 
 #[derive(Clone, Copy, Debug)]
 pub enum RedrawKind {
@@ -79,12 +80,19 @@ pub struct SideBarState {
     pub is_dragging: Signal<bool>,
 }
 
+#[derive(Clone)]
+pub struct LoadedImage {
+    pub image_data: DynamicImage,
+    pub base64_data: String,
+    pub image_format: ImageFormat,
+    pub file_name: String,
+}
+
 #[derive(Clone, Copy)]
 pub struct ImageState {
     pub zoom: Signal<i64>,
     pub limits: Signal<(i64, i64)>,
-    pub image_vector: Signal<VecDeque<DynamicImage>>,
-    pub base64_vector: Signal<VecDeque<String>>,
+    pub image_vector: Signal<VecDeque<LoadedImage>>,
     pub curr_image_index: Signal<usize>,
     pub img_size: Signal<(f64, f64)>,
     pub image_modified: Signal<bool>,
