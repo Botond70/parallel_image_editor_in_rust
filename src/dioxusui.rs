@@ -28,6 +28,9 @@ pub fn App() -> Element {
         document::Stylesheet { 
             href: MAIN_CSS 
         }
+        document::Stylesheet {
+            href: asset!("/assets/tailwind.css")
+        }
         Router::<Route> {
             config: || {
                 RouterConfig::default()
