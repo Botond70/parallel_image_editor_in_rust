@@ -15,6 +15,8 @@ const CHEVRON_DOWN_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='no
 </svg>
 ";
 
+const DEFAULT_GRID_SIZE: &str = "medium";
+
 #[component]
 fn GalleryHeader(grid_size: Signal<String>) -> Element {
     let mut dropdown_visible = use_signal(|| false);
@@ -61,14 +63,14 @@ pub fn Gallery() -> Element {
     let image_data_q = use_context::<ImageState>().image_vector;
     let mut image_size = use_context::<ImageState>().img_size;
     let mut curr_index = use_context::<ImageState>().curr_image_index;
-    let grid_size = use_signal(|| String::from("medium"));
+    let grid_size = use_signal(|| String::from(DEFAULT_GRID_SIZE));
     let img_vector = image_data_q();
 
-    let (column_width, image_width, image_height) = match &*grid_size() {
-        "small" => (220, 180, 90),
-        "medium" => (400, 360, 180),
-        "large" => (520, 480, 270),
-        _ => (400, 360, 180)
+    let (image_width, image_height) = match &*grid_size() {
+        "small" => (180, 90),
+        "medium" => (360, 180),
+        "large" => (480, 270),
+        _ => (360, 180)
     };
 
     let mut handle_onclick = move |index: usize| {
@@ -88,15 +90,19 @@ pub fn Gallery() -> Element {
             GalleryHeader { 
                 grid_size,
             }
-            div { class: "image-display-container",
-                style: format!("grid-template-columns: repeat(auto-fit, minmax({}px, 1fr));", column_width),
+            div {
+                class: "grid pt-4 pl-2 pr-2 gap-x-4 gap-y-10 overflow-y-auto",
+                style: format!(
+                    "grid-template-columns: repeat(auto-fill, minmax({}px, 1fr));",
+                    image_width
+                ),
                 {
                     img_vector.iter().enumerate().map(|(index, loaded_img)| {
                         let img_url = loaded_img.base64_data.clone();
                         rsx! (
-                            div { class: "image-display",
+                            div { class: "image-display flex items-center justify-center w-full",
                                 div { class: "is-selected-wrapper",
-                                    style: if index == curr_index() { "background-color: rgba(200, 200, 200, 0.5); scale: 1.1;"},
+                                    style: if index == curr_index() { "border: 2px solid #007bff; scale: 1.1;"},
                                     Link { to: Route::WorkSpace,
                                         img {
                                             key: "{index}",
@@ -105,6 +111,11 @@ pub fn Gallery() -> Element {
                                                 handle_onclick(index);
                                             },
                                             src: "{img_url}"
+                                        }
+
+                                        p {
+                                            class: "pt-2 w-fit text-sm text-gray-300",
+                                            {loaded_img.file_name.clone()}
                                         }
                                     }
                                 }
