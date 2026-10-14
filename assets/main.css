@@ -300,7 +300,6 @@ input[type="file"] {
 
 .btn {
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
     white-space: nowrap;
     background: none;
@@ -327,7 +326,6 @@ input[type="file"] {
 .button-svg-container {
     width: 30px;
     height: 30px;
-    margin-bottom: 5px;
     filter: var(--filter-default);
     transition: filter 0.15s ease-in-out;
 }
@@ -615,20 +613,18 @@ input[type="file"] {
     right: 0;
     width: fit-content;
     height: fit-content;
-    margin-right: 10px;
+    margin-right: 15px;
+    /* border-radius: 0.5em;
     background-color: rgba(0, 0, 0, 0.35);
-    border-radius: 0.5em;
-    border: 1px solid rgba(0, 0, 0, 0.40);
-    transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out; */
 }
 
-.gallery-page .grid-size-select-button {
-    width: 30px;
-    height: 30px;
-    padding: 0.15em 0 0.15em 0.25em;
-}
+/* .gallery-page .grid-size-select-button {
+    width: 15px;
+    height: 15px;
+} */
 
-.gallery-page .chevron-button {
+/* .gallery-page .chevron-button {
     width: 15px;
     height: 15px;
     padding-right: 0.25em;
@@ -638,7 +634,7 @@ input[type="file"] {
     background-color: rgba(50, 50, 50, 1);
     border: 1px solid rgba(255, 255, 255, 0.5);
     cursor: pointer;
-}
+} */
 
 .gallery-page .dropdown-content {
     border: 1px solid var(--border-color);

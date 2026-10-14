@@ -558,7 +558,7 @@ pub fn SideBar() -> Element {
 
     rsx! {
         div { class: "sidebar-container", style: sidebar_style,
-            button { class: if hsv_is_visible() { "btn on" } else { "btn" },
+            button { class: if hsv_is_visible() { "btn on flex-col" } else { "btn flex-col" },
                 onclick: move |_| {
                     hsv_is_visible.set(!hsv_is_visible());
                 },
@@ -567,7 +567,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "HSV" }
             }
-            button { class: if crop_panel_visibility() { "btn on" } else { "btn" },
+            button { class: if crop_panel_visibility() { "btn on flex-col" } else { "btn flex-col" },
                 onclick: move |_| {
                     crop_panel_visibility.set(!crop_panel_visibility());
                 },
@@ -576,7 +576,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "Crop" }
             }
-            button { class: if resize_panel_visibility() { "btn on" } else { "btn" },
+            button { class: if resize_panel_visibility() { "btn on flex-col" } else { "btn flex-col" },
             onclick: move |_| {
                     resize_panel_visibility.set(!resize_panel_visibility());
                 },
@@ -586,7 +586,7 @@ pub fn SideBar() -> Element {
                 span { class: "button-text", "Resize" }
             }
             div { class: "filter-button-container",
-                button { class: if blur_panel_visibility() { "btn on" } else { "btn" },
+                button { class: if blur_panel_visibility() { "btn on flex-col" } else { "btn flex-col" },
                     onclick: move |_| {
                         filter_menu_visible.set(!filter_menu_visible());
                     },
@@ -599,7 +599,7 @@ pub fn SideBar() -> Element {
                     FilterMenu { }
                 }
             }
-            button { class: if image_is_draggable() { "btn on" } else { "btn" },
+            button { class: if image_is_draggable() { "btn on flex-col" } else { "btn flex-col" },
                 onclick: move |_| {
                     image_is_draggable.set(!image_is_draggable());
                 },

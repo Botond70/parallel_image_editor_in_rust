@@ -6,14 +6,9 @@ use web_sys::console;
 use dioxus::prelude::*;
 const BACK_BUTTON: Asset = asset!("/assets/back-button.svg");
 
-const GRID_SIZE_BUTTON_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='size-6'>
-  <path stroke-linecap='round' stroke-linejoin='round' d='M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z' />
-</svg>";
+const GRID_SIZE_BUTTON_SVG: Asset = asset!("/assets/view-grid.svg"); 
 
-const CHEVRON_DOWN_SVG: &str = "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='size-6'>
-  <path stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' />
-</svg>
-";
+const CHEVRON_DOWN_SVG: Asset = asset!("/assets/chevron-down.svg");
 
 const DEFAULT_GRID_SIZE: &str = "medium";
 
@@ -37,14 +32,17 @@ fn GalleryHeader(grid_size: Signal<String>) -> Element {
             }
             p { "GALLERY" }
             div { class: "grid-size-select-container",
-                onclick: move |_| {
-                    dropdown_visible.set(!dropdown_visible());
-                },
-                div { class: "grid-size-select-button",
-                    dangerous_inner_html: GRID_SIZE_BUTTON_SVG
-                }
-                div { class: "chevron-button",
-                    dangerous_inner_html: CHEVRON_DOWN_SVG
+                button {
+                    class: "btn flex w-15 h-10 items-center",
+                    onclick: move |_| {
+                        dropdown_visible.set(!dropdown_visible());
+                    },
+                    img { class: "button-svg-container",
+                        src: GRID_SIZE_BUTTON_SVG
+                    }
+                    img { class: "button-svg-container",
+                        src: CHEVRON_DOWN_SVG
+                    }
                 }
                 div { class: "dropdown-content",
                     style: visibility,
