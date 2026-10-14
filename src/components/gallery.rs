@@ -89,7 +89,7 @@ pub fn Gallery() -> Element {
                 grid_size,
             }
             div {
-                class: "grid pt-4 pl-2 pr-2 gap-x-4 gap-y-10 overflow-y-auto",
+                class: "grid pt-6 pl-6 pr-6 pb-6 gap-x-4 gap-y-10 overflow-y-auto",
                 style: format!(
                     "grid-template-columns: repeat(auto-fill, minmax({}px, 1fr));",
                     image_width
@@ -100,7 +100,7 @@ pub fn Gallery() -> Element {
                         rsx! (
                             div { class: "image-display flex items-center justify-center w-full",
                                 div { class: "is-selected-wrapper",
-                                    style: if index == curr_index() { "border: 2px solid #007bff; scale: 1.1;"},
+                                    style: if index == curr_index() { "border: 2px solid #007bff; scale: 1.05;"},
                                     Link { to: Route::WorkSpace,
                                         img {
                                             key: "{index}",
