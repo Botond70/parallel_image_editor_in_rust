@@ -54,34 +54,105 @@ pub fn ImageBoard() -> Element {
 
     #[allow(unused)]
     use_effect(move || {
-        if wgpu_on() {
-            spawn(async move {
-                hue.set(0.0);
-                sat.set(0.0);
-                val.set(0.0);
-                let mut image_datas: VecDeque<LoadedImage> = image_data_q.cloned();
-                console::log_1(&format!("Images : {}", image_datas.clone().len()).into());
-                console::log_1(&format!("Current index: {}", curr_index() as u32).into());
-                let first_img = &image_datas.get(curr_index()).unwrap().image_data;
-                let state = Rc::new(RefCell::new(start_wgpu(first_img).await));
-                width_signal.set(first_img.dimensions().0);
-                height_signal.set(first_img.dimensions().1);
-                console::log_1(&"Started WGPU".into());
-                console::log_1(&format!("Images: {}", image_datas.len()).into());
-                let mut wgpusender = state.borrow().sender();
-                for (i, loaded_img) in image_datas.iter().enumerate() {
-                    if i > 0 {
-                        wgpusender.send(loaded_img.image_data.clone());
-                    }
+        if !wgpu_on() {
+            return;
+        }
+
+        let image_datas: VecDeque<LoadedImage> = image_data_q.cloned();
+
+        if image_datas.is_empty() {
+            console::warn_1(&"Cannot initialize WGPU: no images loaded".into());
+            return;
+        }
+
+        let first_img = image_datas[0].image_data.clone();
+
+        spawn(async move {
+            hue.set(0.0);
+            sat.set(0.0);
+            val.set(0.0);
+
+            let state = Rc::new(RefCell::new(start_wgpu(&first_img).await));
+
+            width_signal.set(first_img.dimensions().0);
+            height_signal.set(first_img.dimensions().1);
+
+            let sender = state.borrow().sender();
+
+            for loaded_img in image_datas.iter().skip(1) {
+                if let Err(err) = sender.send(loaded_img.image_data.clone()) {
+                    console::error_1(
+                        &format!("Failed to send image to WGPU: {err}").into()
+                    );
+                    return;
                 }
-                state.borrow_mut().receive().await;
-                state.borrow_mut().set_index(curr_index() as u32);
-                state.borrow_mut().draw(true, None);
-                wgpu_state_signal.set(Some(state.clone()));
-                ready_signal.set(true);
-                console::log_1(&"Drew first image".into());
-            });
+            }
+
+            state.borrow_mut().receive().await;
+
+            let selected_index = curr_index() as usize;
+
+            let Some(selected_image) = image_datas.get(selected_index) else {
+                console::error_1(
+                    &format!("Invalid selected image index: {selected_index}").into()
+                );
+                return;
+            };
+
+            let (width, height) = selected_image.image_data.dimensions();
+
+            width_signal.set(width);
+            height_signal.set(height);
+            image_size.set((width as f64, height as f64));
+
+            state.borrow_mut().set_index(selected_index as u32);
+            state.borrow_mut().draw(true, None);
+
+            wgpu_state_signal.set(Some(state.clone()));
+            ready_signal.set(true);
+        });
+    });
+
+    use_effect(move || {
+        let index = curr_index();
+
+        let dimensions = {
+            let images = image_data_q.read();
+            images
+                .get(index)
+                .map(|img| img.image_data.dimensions())
         };
+
+        let Some((width, height)) = dimensions else {
+            return;
+        };
+
+        image_size.set((width as f64, height as f64));
+        width_signal.set(width);
+        height_signal.set(height);
+
+        if !wgpu_on() || !ready_signal() {
+            return;
+        }
+
+        if let Some(wgpu_state_rc) = &*wgpu_state_signal.read() {
+            let mut wgpu_state = wgpu_state_rc.borrow_mut();
+
+            if index >= wgpu_state.img_vec.len() {
+                return;
+            }
+
+            wgpu_state.set_index(index as u32);
+            wgpu_state.draw(true, None);
+        }
+    });
+
+    use_effect(move || {
+        let _index = curr_index();
+
+        hue.set(0.0);
+        sat.set(0.0);
+        val.set(0.0);
     });
 
     use_effect(move || {

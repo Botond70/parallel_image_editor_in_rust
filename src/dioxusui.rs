@@ -1,7 +1,7 @@
 use crate::app_router::Route;
 use crate::components::{
     footer::FootBar, image_board::ImageBoard, menu_bar::MenuBar,
-    side_bar::SideBar,
+    side_bar::SideBar, image_quick_nav::ImageQuickNav
 };
 use crate::state::providers::{use_blur_state, use_crop_state, use_filter_menu_state, use_hsv_state, use_image_state, use_resize_state, use_sidebar_state, use_undo_redo_state, use_wgpu_state};
 use dioxus::prelude::*;
@@ -47,10 +47,11 @@ pub fn App() -> Element {
 pub fn WorkSpace() -> Element {
     rsx! {
         MenuBar {}
-        FootBar {}
         div { class: "work-space",
             SideBar {}
             ImageBoard {}
+            ImageQuickNav {}
         }
+        FootBar {}
     }
 }

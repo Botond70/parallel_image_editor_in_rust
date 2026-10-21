@@ -40,10 +40,11 @@ input[type="file"] {
     align-items: center;
     max-width: 40vw;
     min-width: 4vw;
-    height: 100vh;
+    height: 92vh;
     padding: 3px;
     background-color: var(--background-bar);
     border-right: 2px solid var(--border-color);
+    transition: width 0.2s ease-in-out;
 }
 
 #hsv-panel-container {
@@ -259,11 +260,10 @@ input[type="file"] {
 
 .menubar-container {
     z-index: 10;
-    position: fixed;
     display: flex;
     align-items: center;
     width: 100vw;
-    height: 30px;
+    height: 3vh;
     background-color: var(--background-bar);
     border-bottom: 2px solid var(--border-color);
 }
@@ -351,19 +351,23 @@ input[type="file"] {
 
 .work-space {
     display: flex;
-    height: 100vh;
+    height: 92vh;
 }
 
+
 .image-container {
-    position: fixed;
+    position: relative;
     z-index: 1;
+
     display: flex;
-    float: inline-end;
+    flex: 1 1 0;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100vw;
-    height: 100vh;
+
+    min-width: 0;
+    height: 92vh;
+    overflow: hidden;
 }
 
 #image-inner {
@@ -372,7 +376,7 @@ input[type="file"] {
     align-items: center;
     justify-content: center;
     width: auto;
-    max-height: 75vh;
+    max-height: 75dvh;
 }
 
 #image-crop-box-container {
@@ -403,11 +407,9 @@ input[type="file"] {
 
 .footer-main {
     display: flex;
-    position: absolute;
     z-index: 5;
     background-color: var(--background-bar);
     border-top: 2px solid var(--border-color);
-    bottom: 0;
     height: 5vh;
     width: 100vw;
 }
@@ -676,4 +678,17 @@ input[type="file"] {
     background-color: rgb(56, 228, 255);
     cursor: pointer;
     color: black;
+}
+
+#image-quick-nav-container {
+    display: flex;
+    flex: 0 0 260px;
+    flex-direction: column;
+    align-items: stretch;
+    height: 92vh;
+    box-sizing: border-box;
+    overflow-y: hidden;
+
+    background-color: var(--background-bar);
+    border-left: 2px solid var(--border-color);
 }

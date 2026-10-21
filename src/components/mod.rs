@@ -6,3 +6,4 @@ pub mod gallery;
 pub mod draggable_resizeable_panel;
 pub mod cropbox;
 pub mod not_found_page;
+pub mod image_quick_nav;
