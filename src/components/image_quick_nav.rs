@@ -20,21 +20,6 @@ pub fn ImageQuickNav() -> Element {
 
     let end_index = (start_index + 3).min(image_count);
 
-    console::log_1(&format!("Current image index: {}", curr_index()).into());
-
-    let mut handle_index_update = move |index: usize| {
-        let dimensions = {
-            let images = image_vector.read();
-            images
-                .get(index)
-                .map(|img| img.image_data.dimensions())
-        };
-
-        if let Some((width, height)) = dimensions {
-            image_size.set((width as f64, height as f64));
-        }
-    };
-
     rsx! {
         div {
             id: "image-quick-nav-container",
