@@ -1,6 +1,7 @@
 use crate::state::app_state::{BlurDirection, BlurMode, BlurState, CropSignal, HSVState};
 use crate::utils::utils::{align_to_256, save_file_via_dialog};
 use dioxus::hooks::use_context;
+use dioxus::signals::ReadableExt;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::{ImageBuffer, Rgba};
@@ -160,9 +161,12 @@ impl State {
         let blur_direction = use_context::<BlurState>().direction;
 
         let globals = Globals::new(
-            hue(), sat(), val(), 
-            left_applied(), right_applied(), top_applied(), bottom_applied(),
-            blur_mode() as u32, blur_window_size(), blur_direction() as u32
+            *hue.peek(), *sat.peek(), *val.peek(),
+            *left_applied.peek(), *right_applied.peek(),
+            *top_applied.peek(), *bottom_applied.peek(),
+            *blur_mode.peek() as u32,
+            *blur_window_size.peek(),
+            *blur_direction.peek() as u32,
         );
         self.queue
             .write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
