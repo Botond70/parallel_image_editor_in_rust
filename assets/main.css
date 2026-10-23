@@ -262,6 +262,8 @@ input[type="file"] {
     z-index: 10;
     display: flex;
     align-items: center;
+    gap: 5px;
+    padding: 0 0 0 4px;
     width: 100vw;
     height: 3vh;
     background-color: var(--background-bar);
@@ -690,4 +692,8 @@ input[type="file"] {
 
     background-color: var(--background-bar);
     border-left: 2px solid var(--border-color);
+}
+
+.filter-neg {
+    filter: var(--filter-default);
 }

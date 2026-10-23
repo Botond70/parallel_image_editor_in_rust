@@ -585,7 +585,7 @@ pub fn SideBar() -> Element {
                 }
                 span { class: "button-text", "Resize" }
             }
-            div { class: "filter-button-container",
+            div { class: "filter-button-container w-full",
                 button { class: if blur_panel_visibility() { "btn on flex-col" } else { "btn flex-col" },
                     onclick: move |_| {
                         filter_menu_visible.set(!filter_menu_visible());

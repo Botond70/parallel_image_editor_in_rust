@@ -6,6 +6,9 @@ use crate::{
 };
 use dioxus::prelude::*;
 
+const UNDO_BUTTON_SVG: Asset = asset!("/assets/undo-button.svg");
+const REDO_BUTTON_SVG: Asset = asset!("/assets/redo-button.svg");
+
 #[component]
 pub fn MenuBar() -> Element {
     let curr_state = *use_context::<SideBarState>().sidebar_is_visible.read();
@@ -79,8 +82,8 @@ fn UndoRedoPanel() -> Element {
     let redo_count = (undo_redo_state.redo_len)();
 
     rsx! {
-        div { class: "undo-redo-panel",
-            div { class: "history-actions",
+        div { class: "undo-redo-panel flex items-center",
+            div { class: "history-actions flex items-center gap-2",
                 button {
                     class: if undo_count > 0 { "btn" } else { "btn disabled" },
                     onclick: move |_| {
@@ -96,6 +99,12 @@ fn UndoRedoPanel() -> Element {
                         }
                     },
                     "Undo"
+                    img {
+                        id: "undo-button-svg",
+                        class: "filter-neg",
+                        style: "width: 20px; height: 20px;",
+                        src: UNDO_BUTTON_SVG,
+                    }
                 }
                 button {
                     class: if redo_count > 0 { "btn" } else { "btn disabled" },
@@ -112,6 +121,12 @@ fn UndoRedoPanel() -> Element {
                         }
                     },
                     "Redo"
+                    img {
+                        id: "redo-button-svg",
+                        class: "filter-neg",
+                        style: "width: 20px; height: 20px;",
+                        src: REDO_BUTTON_SVG,
+                    }
                 }
             }
 
