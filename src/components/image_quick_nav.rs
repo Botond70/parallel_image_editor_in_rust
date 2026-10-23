@@ -56,17 +56,41 @@ pub fn ImageQuickNav() -> Element {
                 if image_count > 0 {
                     for index in start_index..end_index {
                         div {
-                            key: "{index}",
-                            class: if index == image_index {
-                                "w-55 h-40 rounded-sm outline-2 outline-solid outline-blue-500 cursor-pointer"
-                            } else {
-                                "w-55 h-40 rounded-sm outline-1 outline-solid outline-gray-500 cursor-pointer"
-                            },
-                            img {
-                                class: "w-55 h-40 object-fill rounded-sm",
-                                src: image_vector.read()[index].base64_data.clone(),
+                            id: "image-quick-nav-image-wrapper-{index}",
+                            class: "w-55 h-50 flex flex-col",
+                            div {
+                                key: "{index}",
+                                class: if index == image_index {
+                                    "w-55 h-40 rounded-sm outline-2 outline-solid outline-blue-500 cursor-pointer"
+                                } else {
+                                    "w-55 h-40 rounded-sm outline-1 outline-solid outline-gray-500 cursor-pointer"
+                                },
+                                img {
+                                    class: "w-55 h-40 object-fill rounded-sm",
+                                    src: image_vector.read()[index].base64_data.clone(),
+                                }
+                            }
+                            div {
+                                id: "image-quick-nav-image-info-{index}",
+                                class: "w-55 h-10 flex flex items-center justify-between",
+                                span {
+                                    class: "text-sm text-gray-400 pt-1",
+                                    "{image_vector.read()[index].file_name.clone()}"
+                                }
+                                span {
+                                    class: "text-sm text-gray-400 pt-1",
+                                    "{image_vector.read()[index].image_data.dimensions().0} x {image_vector.read()[index].image_data.dimensions().1}"
+                                }
                             }
                         }
+                    }
+                }
+                span {
+                    class: "text-sm text-white-900 bg-gray-600 px-2 py-1 rounded-lg bg-opacity-50",
+                    if image_count == 0 {
+                        "No images loaded"
+                    } else {
+                        {format!("Image {}/{}", image_index + 1, image_count)}
                     }
                 }
             }
