@@ -8,7 +8,7 @@ body {
     --panel-header: #000010;
     --border-color: #495057;
     --button-default: #d0d7dd;
-    --button-background-hover: #0096C7;
+    --button-background-hover: #0099ff;
     --filter-default: brightness(0) saturate(100%) invert(95%) sepia(6%) saturate(238%) hue-rotate(168deg) brightness(91%) contrast(90%);
 
     z-index: 0;
@@ -321,8 +321,17 @@ input[type="file"] {
 }
 
 .btn.on {
-    background-color: hsla(0, 0%, 100%, 0.13);
+    background-color: var(--button-background-hover);
     color: white;
+}
+
+.btn.disabled {
+    color: gray;
+}
+
+.btn.disabled:hover {
+    cursor: default;
+    background: none;
 }
 
 .button-svg-container {

@@ -235,7 +235,7 @@ fn ResizePanel(visibility: Signal<bool>) -> Element {
                             }
                         }
                     }
-                    div { class: "button-container",
+                    div { class: "button-container pt-4",
                         button {
                             class: "btn-styled",
                             onclick: move |_evt| {
