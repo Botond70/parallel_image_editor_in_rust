@@ -76,6 +76,7 @@ pub struct CropSignal {
 #[derive(Clone, Copy)]
 pub struct SideBarState {
     pub sidebar_is_visible: Signal<bool>,
+    pub image_quick_nav_is_visible: Signal<bool>,
     pub is_cropping: Signal<bool>,
     pub is_dragging: Signal<bool>,
 }

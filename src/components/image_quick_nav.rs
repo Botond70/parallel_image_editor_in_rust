@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::state::app_state::{ImageState, UndoRedoState};
+use crate::state::app_state::{ImageState, SideBarState, UndoRedoState};
 use crate::utils::undo_redo::clear_undo_redo_history;
 use image::GenericImageView;
 
@@ -14,6 +14,8 @@ pub fn ImageQuickNav() -> Element {
     let image_count = image_vector.read().len();
     let image_index = curr_index();
 
+    let component_is_visible = use_context::<SideBarState>().image_quick_nav_is_visible;
+
     let start_index = image_index.saturating_sub(1).min(image_count.saturating_sub(3));
 
     let end_index = (start_index + 3).min(image_count);
@@ -21,6 +23,7 @@ pub fn ImageQuickNav() -> Element {
     rsx! {
         div {
             id: "image-quick-nav-container",
+            class: if component_is_visible() { "flex" } else { "hidden" },
             div {
                 id: "image-quick-nav-button-container",
                 class: "h-12 min-h-12 w-full flex items-center justify-center shrink-0 border-b-1 border-solid border-gray-600",

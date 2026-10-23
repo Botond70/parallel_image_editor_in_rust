@@ -22,11 +22,13 @@ pub fn use_sidebar_state() {
     let sidebar_is_visible = use_signal(|| true);
     let is_cropping = use_signal(|| false);
     let is_dragging = use_signal(|| false);
+    let image_quick_nav_is_visible = use_signal(|| true);
 
     use_context_provider(|| SideBarState {
         sidebar_is_visible,
         is_cropping,
         is_dragging,
+        image_quick_nav_is_visible,
     });
 }
 

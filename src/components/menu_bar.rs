@@ -14,6 +14,11 @@ pub fn MenuBar() -> Element {
         sidebar_signal.set(!curr_state);
     };
 
+    let mut quicknav_visibility = use_context::<SideBarState>().image_quick_nav_is_visible;
+    let toggle_quicknav = move |_| {
+        quicknav_visibility.set(!quicknav_visibility());
+    };
+
     let curr_save = *use_context::<WGPUSignal>().save_signal.read();
     let mut saver_signal = use_context::<WGPUSignal>().save_signal;
     let saver = move |_| {
@@ -50,6 +55,8 @@ pub fn MenuBar() -> Element {
                 div { class: "dropdown-content",
                     button { onclick: toggle,
                         class: "btn", "Toggle Sidebar" }
+                    button { onclick: toggle_quicknav,
+                        class: "btn", "Toggle Quick Nav" }
                 }
             }
             Link { to: Route::Gallery, button { class: "btn", "Gallery" } }
