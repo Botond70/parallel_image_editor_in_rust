@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 use crate::state::app_state::{ImageState, UndoRedoState};
-use web_sys::console;
 use crate::utils::undo_redo::clear_undo_redo_history;
 use image::GenericImageView;
 
@@ -9,9 +8,8 @@ const DOWN_ARROW_SVG: Asset = asset!("/assets/down-arrow.svg");
 
 #[component]
 pub fn ImageQuickNav() -> Element {
-    let mut image_state = use_context::<ImageState>();
+    let image_state = use_context::<ImageState>();
     let mut curr_index = use_context::<ImageState>().curr_image_index;
-    let mut image_size = use_context::<ImageState>().img_size;
     let image_vector = image_state.image_vector;
     let image_count = image_vector.read().len();
     let image_index = curr_index();
